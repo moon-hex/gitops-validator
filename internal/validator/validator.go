@@ -56,14 +56,14 @@ func NewValidatorWithExitCodes(repoPath string, verbose bool, yamlPath string, f
 	return v
 }
 
-func (v *Validator) Validate() error {
+func (v *Validator) Validate() (int, error) {
 	if v.verbose {
 		fmt.Printf("Starting validation of repository: %s\n", v.repoPath)
 	}
 
 	// Check if repository path exists
 	if _, err := os.Stat(v.repoPath); os.IsNotExist(err) {
-		return fmt.Errorf("repository path does not exist: %s", v.repoPath)
+		return 1, fmt.Errorf("repository path does not exist: %s", v.repoPath)
 	}
 
 	// Parse all resources into the graph
@@ -73,7 +73,7 @@ func (v *Validator) Validate() error {
 
 	graph, err := v.parser.ParseAllResources()
 	if err != nil {
-		return fmt.Errorf("failed to parse resources: %w", err)
+		return 1, fmt.Errorf("failed to parse resources: %w", err)
 	}
 	v.graph = graph
 
@@ -110,7 +110,7 @@ func (v *Validator) Validate() error {
 
 		results, err := validator.Validate()
 		if err != nil {
-			return fmt.Errorf("validator %s failed: %w", validator.Name(), err)
+			return 1, fmt.Errorf("validator %s failed: %w", validator.Name(), err)
 		}
 
 		v.results = append(v.results, results...)
@@ -135,18 +135,18 @@ func (v *Validator) Validate() error {
 		}
 	}
 
-	// Return appropriate error based on configuration
+	// Return appropriate exit code based on configuration
 	if hasErrors && v.config.GitOpsValidator.ExitCodes.FailOnErrors {
-		return fmt.Errorf("validation failed with errors")
+		return 1, nil // Exit code 1 for errors, no error returned
 	}
 	if hasWarnings && v.config.GitOpsValidator.ExitCodes.FailOnWarnings {
-		return fmt.Errorf("validation failed with warnings")
+		return 2, nil // Exit code 2 for warnings, no error returned
 	}
 	if hasInfo && v.config.GitOpsValidator.ExitCodes.FailOnInfo {
-		return fmt.Errorf("validation failed with info messages")
+		return 3, nil // Exit code 3 for info, no error returned
 	}
 
-	return nil
+	return 0, nil // Exit code 0 for success, no error returned
 }
 
 // GenerateChart generates a dependency chart in the specified format
