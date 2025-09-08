@@ -24,12 +24,22 @@ type Validator struct {
 }
 
 func NewValidator(repoPath string, verbose bool, yamlPath string) *Validator {
+	// Load configuration from file
+	cfg := config.DefaultConfig()
+
+	// Try to load from .gitops-validator.yaml
+	if _, err := os.Stat(".gitops-validator.yaml"); err == nil {
+		if loadedConfig, err := config.LoadConfig(".gitops-validator.yaml"); err == nil {
+			cfg = loadedConfig
+		}
+	}
+
 	return &Validator{
 		repoPath: repoPath,
 		verbose:  verbose,
 		yamlPath: yamlPath,
-		config:   config.DefaultConfig(),
-		parser:   parser.NewResourceParser(repoPath),
+		config:   cfg,
+		parser:   parser.NewResourceParser(repoPath, cfg),
 		results:  make([]types.ValidationResult, 0),
 	}
 }

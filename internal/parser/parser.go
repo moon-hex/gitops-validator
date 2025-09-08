@@ -6,18 +6,21 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/moon-hex/gitops-validator/internal/config"
 	"gopkg.in/yaml.v3"
 )
 
 // ResourceParser parses YAML files and extracts Kubernetes resources
 type ResourceParser struct {
 	repoPath string
+	config   *config.Config
 }
 
 // NewResourceParser creates a new ResourceParser
-func NewResourceParser(repoPath string) *ResourceParser {
+func NewResourceParser(repoPath string, config *config.Config) *ResourceParser {
 	return &ResourceParser{
 		repoPath: repoPath,
+		config:   config,
 	}
 }
 
@@ -34,12 +37,17 @@ func (p *ResourceParser) ParseAllResources() (*ResourceGraph, error) {
 			return nil
 		}
 
-		if !strings.HasSuffix(strings.ToLower(path), ".yaml") && !strings.HasSuffix(strings.ToLower(path), ".yml") {
+		// Check if path should be ignored
+		relPath, err := filepath.Rel(p.repoPath, path)
+		if err != nil {
+			return err
+		}
+
+		if p.config.ShouldIgnorePath(relPath) {
 			return nil
 		}
 
-		// Skip hidden files and common non-resource directories
-		if strings.Contains(path, "/.") || strings.Contains(path, "node_modules") {
+		if !strings.HasSuffix(strings.ToLower(path), ".yaml") && !strings.HasSuffix(strings.ToLower(path), ".yml") {
 			return nil
 		}
 

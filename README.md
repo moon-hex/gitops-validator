@@ -141,7 +141,7 @@ jobs:
 
 ### Configuration
 
-Create a `.gitops-validator.yaml` file in your repository root:
+Create a `.gitops-validator.yaml` file in your repository root to customize validation behavior and ignore patterns:
 
 ```yaml
 # Repository path to validate
@@ -165,11 +165,27 @@ rules:
     enabled: true
     severity: "warning"
 
-# Ignore patterns
+# Ignore patterns for files/directories (prevents validation of non-GitOps files)
 ignore:
-  - "**/.git/**"
-  - "**/node_modules/**"
-  - "**/.github/**"
+  directories:
+    - ".git/**"
+    - ".github/**"
+    - ".gitlab-ci/**"
+    - ".circleci/**"
+    - ".azure-pipelines/**"
+    - "node_modules/**"
+    - "vendor/**"
+    - "tmp/**"
+    - "temp/**"
+    - "build/**"
+    - "dist/**"
+    - "bin/**"
+  files:
+    - "*.log"
+    - "*.tmp"
+    - "*.temp"
+    - ".DS_Store"
+    - "Thumbs.db"
 
 # Custom deprecated APIs
 custom-deprecated-apis:

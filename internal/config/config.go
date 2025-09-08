@@ -2,7 +2,11 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Config represents the complete configuration for gitops-validator
@@ -27,6 +31,9 @@ type GitOpsValidatorConfig struct {
 
 	// Chart configuration
 	Chart ChartConfig `yaml:"chart"`
+
+	// Ignore patterns for files/directories
+	Ignore IgnoreConfig `yaml:"ignore"`
 }
 
 // EntryPointsConfig defines how to identify entry point resources
@@ -83,6 +90,12 @@ type ChartConfig struct {
 	IncludeMetadata bool   `yaml:"include-metadata"` // include resource metadata
 }
 
+// IgnoreConfig defines patterns to ignore during validation
+type IgnoreConfig struct {
+	Directories []string `yaml:"directories"` // Directory patterns to ignore
+	Files       []string `yaml:"files"`       // File patterns to ignore
+}
+
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
@@ -115,8 +128,89 @@ func DefaultConfig() *Config {
 				IncludeOrphaned: true,
 				IncludeMetadata: true,
 			},
+			Ignore: IgnoreConfig{
+				Directories: []string{
+					".git/**",
+					".github/**",
+					".gitlab-ci/**",
+					".circleci/**",
+					".azure-pipelines/**",
+					"node_modules/**",
+					"vendor/**",
+					"tmp/**",
+					"temp/**",
+					"build/**",
+					"dist/**",
+					"bin/**",
+				},
+				Files: []string{
+					"*.log",
+					"*.tmp",
+					"*.temp",
+					".DS_Store",
+					"Thumbs.db",
+				},
+			},
 		},
 	}
+}
+
+// LoadConfig loads configuration from a YAML file
+func LoadConfig(configPath string) (*Config, error) {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
+	}
+
+	var config Config
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse config file %s: %w", configPath, err)
+	}
+
+	// Merge with defaults for any missing fields
+	defaultConfig := DefaultConfig()
+
+	// Merge ignore patterns
+	if len(config.GitOpsValidator.Ignore.Directories) == 0 {
+		config.GitOpsValidator.Ignore.Directories = defaultConfig.GitOpsValidator.Ignore.Directories
+	}
+	if len(config.GitOpsValidator.Ignore.Files) == 0 {
+		config.GitOpsValidator.Ignore.Files = defaultConfig.GitOpsValidator.Ignore.Files
+	}
+
+	return &config, nil
+}
+
+// ShouldIgnorePath checks if a path should be ignored based on ignore patterns
+func (c *Config) ShouldIgnorePath(path string) bool {
+	// Normalize path separators to forward slashes for consistent matching
+	normalizedPath := filepath.ToSlash(path)
+
+	// Check directory patterns
+	for _, pattern := range c.GitOpsValidator.Ignore.Directories {
+		// Normalize pattern separators too
+		normalizedPattern := filepath.ToSlash(pattern)
+
+		if matched, _ := filepath.Match(normalizedPattern, normalizedPath); matched {
+			return true
+		}
+		// Also check if the path is within an ignored directory
+		if strings.Contains(normalizedPattern, "**") {
+			dirPattern := strings.TrimSuffix(normalizedPattern, "/**")
+			if strings.HasPrefix(normalizedPath, dirPattern+"/") {
+				return true
+			}
+		}
+	}
+
+	// Check file patterns
+	for _, pattern := range c.GitOpsValidator.Ignore.Files {
+		if matched, _ := filepath.Match(pattern, filepath.Base(path)); matched {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Validate validates the configuration

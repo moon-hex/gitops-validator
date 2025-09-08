@@ -44,15 +44,28 @@ chart:
   output: ""        # output file path (empty = stdout)
   include-orphaned: true
   include-metadata: true
-  
+
 # Ignore patterns for files/directories
 ignore:
-  - "**/.git/**"
-  - "**/node_modules/**"
-  - "**/.github/**"
-  - "**/docs/**"
-  - "**/README.md"
-  - "**/LICENSE"
+  directories:
+    - ".git/**"
+    - ".github/**"
+    - ".gitlab-ci/**"
+    - ".circleci/**"
+    - ".azure-pipelines/**"
+    - "node_modules/**"
+    - "vendor/**"
+    - "tmp/**"
+    - "temp/**"
+    - "build/**"
+    - "dist/**"
+    - "bin/**"
+  files:
+    - "*.log"
+    - "*.tmp"
+    - "*.temp"
+    - ".DS_Store"
+    - "Thumbs.db"
   
 # Entry point patterns (files that are considered valid even if not referenced)
 entry-points:
