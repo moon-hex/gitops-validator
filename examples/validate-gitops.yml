@@ -5,16 +5,71 @@ on:
     branches: [main, master]
 
 jobs:
-  validate:
+  validate-with-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download GitOps Validator
+      - name: Download GitOps Validator (from release)
         run: |
           curl -L -o gitops-validator https://github.com/moon-hex/gitops-validator/releases/latest/download/gitops-validator-linux-amd64
           chmod +x gitops-validator
 
       - name: Validate GitOps Repository
         run: ./gitops-validator --path . --verbose
+
+  validate-from-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Build GitOps Validator from source
+        run: |
+          go mod download
+          go build -o gitops-validator ./main.go
+
+      - name: Validate GitOps Repository
+        run: ./gitops-validator --path . --verbose
+
+  validate-with-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          # Create a simple Dockerfile if it doesn't exist
+          cat > Dockerfile << 'EOF'
+          FROM golang:1.21-alpine AS builder
+          WORKDIR /app
+          COPY . .
+          RUN go mod download
+          RUN go build -o gitops-validator ./main.go
+          
+          FROM alpine:latest
+          RUN apk --no-cache add ca-certificates
+          WORKDIR /root/
+          COPY --from=builder /app/gitops-validator .
+          ENTRYPOINT ["./gitops-validator"]
+          EOF
+
+      - name: Build and run validation
+        run: |
+          docker build -t gitops-validator .
+          docker run --rm -v $(pwd):/workspace -w /workspace gitops-validator --path . --verbose
