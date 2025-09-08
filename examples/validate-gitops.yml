@@ -1,0 +1,20 @@
+name: Validate GitOps
+
+on:
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download GitOps Validator
+        run: |
+          curl -L -o gitops-validator https://github.com/moon-hex/gitops-validator/releases/latest/download/gitops-validator-linux-amd64
+          chmod +x gitops-validator
+
+      - name: Validate GitOps Repository
+        run: ./gitops-validator --path . --verbose

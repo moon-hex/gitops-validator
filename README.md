@@ -239,75 +239,39 @@ custom-deprecated-apis:
 
 ## GitHub Actions Integration
 
-The tool provides several workflow examples with proper error handling:
-
-### Basic Validation (with Error Handling)
-
 Add this workflow to your `.github/workflows/` directory:
 
 ```yaml
-name: GitOps Validation
+name: Validate GitOps
 
 on:
-  push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-        
-    - name: Install dependencies
-      run: go mod download
-      
-    - name: Build validator
-      run: go build -o gitops-validator ./main.go
-      
-    - name: Run validation
-      run: ./gitops-validator --path . --verbose
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download GitOps Validator
+        run: |
+          curl -L -o gitops-validator https://github.com/moon-hex/gitops-validator/releases/latest/download/gitops-validator-linux-amd64
+          chmod +x gitops-validator
+
+      - name: Validate GitOps Repository
+        run: ./gitops-validator --path . --verbose
 ```
 
-### Advanced Workflow Examples
+A complete example is available in `examples/validate-gitops.yml`.
 
-The repository includes several advanced workflow examples:
+### Key Features:
 
-- **`examples/github-actions-with-error-handling.yml`**: Comprehensive error handling with conditional chart generation
-- **`examples/github-actions-config-based.yml`**: Configuration-driven validation with proper exit codes
-- **`examples/github-actions-with-chart.yml`**: Chart generation with PR comments
-- **`examples/github-actions-per-entrypoint.yml`**: Per-entrypoint chart generation
-
-#### Key Features of Advanced Workflows:
-
-- ✅ **Proper Error Handling**: Workflows fail appropriately when validation errors are found
-- ✅ **Conditional Execution**: Charts and artifacts only generated for valid configurations
-- ✅ **Smart PR Comments**: Different messages based on validation results
-- ✅ **Configurable Severity**: Choose whether to fail on warnings or just errors
-- ✅ **Artifact Management**: Upload validation results and charts as artifacts
-
-#### Example: Strict Validation (Fail on Warnings)
-
-```yaml
-- name: Strict GitOps Validation
-  run: |
-    gitops-validator --path . --verbose --fail-on-errors --fail-on-warnings
-  continue-on-error: true
-  
-- name: Fail Job on Any Issues
-  if: failure()
-  run: |
-    echo "❌ GitOps validation failed. Please fix all errors and warnings."
-    exit 1
-```
+- ✅ **Fails on Errors**: Workflow fails when validation errors are found (default behavior)
+- ✅ **Configurable Severity**: Use `--fail-on-warnings` or `--no-fail-on-errors` flags as needed
+- ✅ **Cross-Platform**: Works on Linux, macOS, and Windows runners
+- ✅ **Lightweight**: Downloads pre-built binary (no Go compilation needed)
 
 ## Validation Rules
 
