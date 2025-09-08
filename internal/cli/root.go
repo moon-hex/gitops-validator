@@ -166,13 +166,31 @@ func runValidation(cmd *cobra.Command, args []string) error {
 
 	// If chart generation is requested, handle it separately
 	if chartFormat != "" {
+		var err error
 		if chartEntryPoint != "" {
-			return v.GenerateChartForEntryPoint(chartFormat, chartOutput, chartEntryPoint)
+			err = v.GenerateChartForEntryPoint(chartFormat, chartOutput, chartEntryPoint)
+		} else {
+			err = v.GenerateChart(chartFormat, chartOutput)
 		}
-		return v.GenerateChart(chartFormat, chartOutput)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+		return nil // This line is unreachable but required by Go compiler
 	}
 
-	return v.Validate()
+	// Handle validation and exit with appropriate code
+	exitCode, err := v.Validate()
+	if err != nil {
+		// For parsing errors, show the error and exit
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	// Always exit with the validation result code (0 for success, 1/2/3 for different failure types)
+	// This prevents Cobra from showing help text since we never return an error from RunE
+	os.Exit(exitCode)
+	return nil // This line is unreachable but required by Go compiler
 }
 
 // hasValidationFlags checks if any validation-related flags are set
