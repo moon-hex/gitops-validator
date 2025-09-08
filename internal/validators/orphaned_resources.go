@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/moon-hex/gitops-validator/internal/config"
 	"github.com/moon-hex/gitops-validator/internal/types"
 
 	"gopkg.in/yaml.v3"
@@ -13,11 +14,20 @@ import (
 
 type OrphanedResourceValidator struct {
 	repoPath string
+	config   *config.Config
 }
 
 func NewOrphanedResourceValidator(repoPath string) *OrphanedResourceValidator {
 	return &OrphanedResourceValidator{
 		repoPath: repoPath,
+		config:   config.DefaultConfig(),
+	}
+}
+
+func NewOrphanedResourceValidatorWithConfig(repoPath string, cfg *config.Config) *OrphanedResourceValidator {
+	return &OrphanedResourceValidator{
+		repoPath: repoPath,
+		config:   cfg,
 	}
 }
 
@@ -87,6 +97,16 @@ func (v *OrphanedResourceValidator) findYAMLFiles() ([]string, error) {
 			return nil
 		}
 
+		// Check if path should be ignored
+		relPath, err := filepath.Rel(v.repoPath, path)
+		if err != nil {
+			return err
+		}
+
+		if v.config.ShouldIgnorePath(relPath) {
+			return nil
+		}
+
 		if strings.HasSuffix(strings.ToLower(path), ".yaml") || strings.HasSuffix(strings.ToLower(path), ".yml") {
 			files = append(files, path)
 		}
@@ -106,6 +126,16 @@ func (v *OrphanedResourceValidator) findKustomizationFiles() ([]string, error) {
 		}
 
 		if info.IsDir() {
+			return nil
+		}
+
+		// Check if path should be ignored
+		relPath, err := filepath.Rel(v.repoPath, path)
+		if err != nil {
+			return err
+		}
+
+		if v.config.ShouldIgnorePath(relPath) {
 			return nil
 		}
 
