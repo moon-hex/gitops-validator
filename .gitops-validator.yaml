@@ -1,0 +1,50 @@
+# GitOps Validator Configuration
+# This file configures the validation rules and settings
+
+# Repository path to validate (default: current directory)
+path: "."
+
+# Verbose output
+verbose: false
+
+# Validation rules configuration
+rules:
+  # Flux Kustomization validation
+  flux-kustomization:
+    enabled: true
+    severity: "error"
+    
+  # Kubernetes Kustomization validation  
+  kubernetes-kustomization:
+    enabled: true
+    severity: "error"
+    
+  # Orphaned resource detection
+  orphaned-resources:
+    enabled: true
+    severity: "warning"
+    
+  # Deprecated API detection
+  deprecated-apis:
+    enabled: true
+    severity: "warning"
+    
+# Custom deprecated APIs (additional to built-in list)
+custom-deprecated-apis:
+  # Example:
+  # "mycompany.com/v1alpha1": "Deprecated in v1.0, will be removed in v2.0"
+  
+# Ignore patterns for files/directories
+ignore:
+  - "**/.git/**"
+  - "**/node_modules/**"
+  - "**/.github/**"
+  - "**/docs/**"
+  - "**/README.md"
+  - "**/LICENSE"
+  
+# Entry point patterns (files that are considered valid even if not referenced)
+entry-points:
+  - "**/kustomization.yaml"
+  - "**/kustomization.yml"
+  - "**/flux-system/**"
