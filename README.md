@@ -8,7 +8,8 @@ A comprehensive validation tool for GitOps repositories that checks for common i
 - **Kubernetes Kustomization Validation**: Validates kustomization.yaml files for broken resource and patch references
 - **Orphaned Resource Detection**: Identifies YAML files that are not referenced by any kustomization
 - **Deprecated API Detection**: Warns about usage of deprecated Kubernetes API versions
-- **GitHub Actions Integration**: Ready-to-use workflow for CI/CD pipelines
+- **Dependency Chart Generation**: Visualize your GitOps repository structure with Mermaid diagrams
+- **GitHub Actions Integration**: Ready-to-use workflow for CI/CD pipelines with chart generation
 
 ## Installation
 
@@ -42,6 +43,100 @@ go install github.com/moon-hex/gitops-validator@latest
 
 # Use custom config file
 ./gitops-validator --config my-config.yaml
+
+# Generate dependency chart
+./gitops-validator --chart mermaid
+
+# Generate chart and save to file
+./gitops-validator --chart mermaid --chart-output deps.md
+
+# Generate tree format chart
+./gitops-validator --chart tree
+
+# Generate chart for specific entry point
+./gitops-validator --chart mermaid --chart-entrypoint flux-system
+
+# Generate chart for entry point and save to file
+./gitops-validator --chart mermaid --chart-entrypoint flux-system --chart-output flux-system-deps.md
+```
+
+### Dependency Chart Generation
+
+The tool can generate visual dependency charts of your GitOps repository structure:
+
+#### Chart Formats
+
+- **Mermaid**: Interactive diagrams that render in GitHub, GitLab, and many documentation tools
+- **Tree**: Text-based hierarchical view
+- **JSON**: Machine-readable format for further processing
+
+#### Example Mermaid Chart
+
+```mermaid
+graph TD
+    N1["flux-system<br/>📁 flux-kustomization"]
+    N2["backend<br/>🚀 helm-release"]
+    N3["frontend<br/>🚀 helm-release"]
+    N4["postgres<br/>🚀 helm-release"]
+    
+    %% Orphaned Resources
+    N5["orphaned-config<br/>📄 kubernetes-resource"]
+    
+    %% Styling
+    classDef valid fill:#2E8B57,stroke:#1F5F3F,stroke-width:3px,color:#FFFFFF
+    classDef orphaned fill:#DC143C,stroke:#8B0000,stroke-width:3px,color:#FFFFFF
+    
+    class N1,N2,N3,N4 valid
+    class N5 orphaned
+```
+
+#### Chart Configuration
+
+Add chart settings to your `.gitops-validator.yaml`:
+
+```yaml
+chart:
+  enabled: false
+  format: "mermaid"  # mermaid, tree, json
+  output: ""        # output file path (empty = stdout)
+  include-orphaned: true
+  include-metadata: true
+```
+
+#### GitHub Actions Integration
+
+The tool integrates seamlessly with GitHub Actions to generate dependency charts in PR comments:
+
+```yaml
+name: GitOps Validation with Charts
+on: [pull_request]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: go install github.com/moon-hex/gitops-validator@latest
+    
+    - name: Generate Entrypoint Charts
+      run: |
+        mkdir -p charts
+        # Generate chart for each entry point
+        gitops-validator --path . --chart mermaid --chart-entrypoint flux-system --chart-output charts/flux-system.md
+        
+    - name: Comment PR with Charts
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const chart = fs.readFileSync('charts/flux-system.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `## 🔍 GitOps Dependencies\n\n\`\`\`mermaid\n${chart}\n\`\`\``
+          });
 ```
 
 ### Configuration

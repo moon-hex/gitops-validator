@@ -7,6 +7,9 @@ path: "."
 # Verbose output
 verbose: false
 
+# Path to deprecated APIs YAML file (default: data/deprecated-apis.yaml)
+yaml-path: ""
+
 # Validation rules configuration
 rules:
   # Flux Kustomization validation
@@ -33,6 +36,14 @@ rules:
 custom-deprecated-apis:
   # Example:
   # "mycompany.com/v1alpha1": "Deprecated in v1.0, will be removed in v2.0"
+
+# Chart generation settings
+chart:
+  enabled: false
+  format: "mermaid"  # mermaid, tree, json
+  output: ""        # output file path (empty = stdout)
+  include-orphaned: true
+  include-metadata: true
   
 # Ignore patterns for files/directories
 ignore:

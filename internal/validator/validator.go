@@ -6,6 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/moon-hex/gitops-validator/internal/config"
+	"github.com/moon-hex/gitops-validator/internal/context"
+	"github.com/moon-hex/gitops-validator/internal/parser"
 	"github.com/moon-hex/gitops-validator/internal/types"
 	"github.com/moon-hex/gitops-validator/internal/validators"
 )
@@ -13,13 +16,20 @@ import (
 type Validator struct {
 	repoPath string
 	verbose  bool
+	yamlPath string
+	config   *config.Config
+	parser   *parser.ResourceParser
+	graph    *parser.ResourceGraph
 	results  []types.ValidationResult
 }
 
-func NewValidator(repoPath string, verbose bool) *Validator {
+func NewValidator(repoPath string, verbose bool, yamlPath string) *Validator {
 	return &Validator{
 		repoPath: repoPath,
 		verbose:  verbose,
+		yamlPath: yamlPath,
+		config:   config.DefaultConfig(),
+		parser:   parser.NewResourceParser(repoPath),
 		results:  make([]types.ValidationResult, 0),
 	}
 }
@@ -34,16 +44,44 @@ func (v *Validator) Validate() error {
 		return fmt.Errorf("repository path does not exist: %s", v.repoPath)
 	}
 
+	// Parse all resources into the graph
+	if v.verbose {
+		fmt.Printf("Parsing resources...\n")
+	}
+
+	graph, err := v.parser.ParseAllResources()
+	if err != nil {
+		return fmt.Errorf("failed to parse resources: %w", err)
+	}
+	v.graph = graph
+
+	if v.verbose {
+		fmt.Printf("Found %d resources in %d files\n", len(graph.Resources), len(graph.Files))
+	}
+
+	// Create validation context (for future use)
+	_ = context.NewValidationContext(graph, v.config, v.repoPath, v.verbose)
+
+	// For now, use the old validators until we refactor them
+	// TODO: Refactor validators to use the new GraphValidator interface
+
 	// Initialize validators
-	validators := []validators.ValidatorInterface{
+	var deprecatedAPIValidator validators.ValidatorInterface
+	if v.yamlPath != "" {
+		deprecatedAPIValidator = validators.NewDeprecatedAPIValidatorWithYAML(v.repoPath, v.yamlPath)
+	} else {
+		deprecatedAPIValidator = validators.NewDeprecatedAPIValidator(v.repoPath)
+	}
+
+	validatorList := []validators.ValidatorInterface{
 		validators.NewFluxKustomizationValidator(v.repoPath),
 		validators.NewKubernetesKustomizationValidator(v.repoPath),
 		validators.NewOrphanedResourceValidator(v.repoPath),
-		validators.NewDeprecatedAPIValidator(v.repoPath),
+		deprecatedAPIValidator,
 	}
 
 	// Run all validators
-	for _, validator := range validators {
+	for _, validator := range validatorList {
 		if v.verbose {
 			fmt.Printf("Running validator: %s\n", validator.Name())
 		}
@@ -73,6 +111,112 @@ func (v *Validator) Validate() error {
 	}
 
 	return nil
+}
+
+// GenerateChart generates a dependency chart in the specified format
+func (v *Validator) GenerateChart(format string, outputFile string) error {
+	if v.verbose {
+		fmt.Printf("Generating dependency chart...\n")
+	}
+
+	// Parse all resources into the graph
+	graph, err := v.parser.ParseAllResources()
+	if err != nil {
+		return fmt.Errorf("failed to parse resources: %w", err)
+	}
+
+	if v.verbose {
+		fmt.Printf("Found %d resources in %d files\n", len(graph.Resources), len(graph.Files))
+	}
+
+	// Create validation context
+	ctx := context.NewValidationContext(graph, v.config, v.repoPath, v.verbose)
+
+	// Generate the chart
+	chart, err := ctx.GenerateDependencyChart(format)
+	if err != nil {
+		return fmt.Errorf("failed to generate chart: %w", err)
+	}
+
+	// Output the chart
+	if outputFile != "" {
+		err := os.WriteFile(outputFile, []byte(chart), 0644)
+		if err != nil {
+			return fmt.Errorf("failed to write chart to file %s: %w", outputFile, err)
+		}
+		if v.verbose {
+			fmt.Printf("Chart written to: %s\n", outputFile)
+		}
+	} else {
+		fmt.Println(chart)
+	}
+
+	return nil
+}
+
+// GenerateChartForEntryPoint generates a dependency chart for a specific entry point
+func (v *Validator) GenerateChartForEntryPoint(format string, outputFile string, entryPointName string) error {
+	if v.verbose {
+		fmt.Printf("Generating dependency chart for entry point: %s\n", entryPointName)
+	}
+
+	// Parse all resources into the graph
+	graph, err := v.parser.ParseAllResources()
+	if err != nil {
+		return fmt.Errorf("failed to parse resources: %w", err)
+	}
+
+	if v.verbose {
+		fmt.Printf("Found %d resources in %d files\n", len(graph.Resources), len(graph.Files))
+	}
+
+	// Create validation context
+	ctx := context.NewValidationContext(graph, v.config, v.repoPath, v.verbose)
+
+	// Find the specific entry point
+	entryPoints := ctx.FindEntryPoints()
+	var targetEntryPoint *parser.ParsedResource
+	for _, ep := range entryPoints {
+		if ep.Name == entryPointName {
+			targetEntryPoint = ep
+			break
+		}
+	}
+
+	if targetEntryPoint == nil {
+		return fmt.Errorf("entry point '%s' not found. Available entry points: %v",
+			entryPointName, getEntryPointNames(entryPoints))
+	}
+
+	// Generate the chart for this entry point
+	chart, err := ctx.GenerateDependencyChartForEntryPoint(targetEntryPoint, format)
+	if err != nil {
+		return fmt.Errorf("failed to generate chart: %w", err)
+	}
+
+	// Output the chart
+	if outputFile != "" {
+		err := os.WriteFile(outputFile, []byte(chart), 0644)
+		if err != nil {
+			return fmt.Errorf("failed to write chart to file %s: %w", outputFile, err)
+		}
+		if v.verbose {
+			fmt.Printf("Chart written to: %s\n", outputFile)
+		}
+	} else {
+		fmt.Println(chart)
+	}
+
+	return nil
+}
+
+// getEntryPointNames returns a slice of entry point names
+func getEntryPointNames(entryPoints []*parser.ParsedResource) []string {
+	names := make([]string, len(entryPoints))
+	for i, ep := range entryPoints {
+		names[i] = ep.Name
+	}
+	return names
 }
 
 func (v *Validator) printResults() {

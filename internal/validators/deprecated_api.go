@@ -12,31 +12,33 @@ import (
 )
 
 type DeprecatedAPIValidator struct {
-	repoPath string
+	repoPath       string
+	yamlPath       string
+	deprecatedAPIs map[string]DeprecatedAPIInfo
 }
 
-// DeprecatedAPIs contains a list of deprecated Kubernetes API versions
-var DeprecatedAPIs = map[string]string{
-	"extensions/v1beta1":                    "Deprecated in v1.16, removed in v1.22",
-	"apps/v1beta1":                          "Deprecated in v1.9, removed in v1.16",
-	"apps/v1beta2":                          "Deprecated in v1.9, removed in v1.16",
-	"policy/v1beta1":                        "Deprecated in v1.21, removed in v1.25",
-	"rbac.authorization.k8s.io/v1beta1":     "Deprecated in v1.17, removed in v1.22",
-	"rbac.authorization.k8s.io/v1alpha1":    "Deprecated in v1.17, removed in v1.22",
-	"storage.k8s.io/v1beta1":                "Deprecated in v1.19, removed in v1.22",
-	"admissionregistration.k8s.io/v1beta1":  "Deprecated in v1.19, removed in v1.22",
-	"networking.k8s.io/v1beta1":             "Deprecated in v1.19, removed in v1.22",
-	"scheduling.k8s.io/v1beta1":             "Deprecated in v1.19, removed in v1.22",
-	"coordination.k8s.io/v1beta1":           "Deprecated in v1.19, removed in v1.22",
-	"node.k8s.io/v1beta1":                   "Deprecated in v1.19, removed in v1.22",
-	"discovery.k8s.io/v1beta1":              "Deprecated in v1.19, removed in v1.22",
-	"flowcontrol.apiserver.k8s.io/v1beta1":  "Deprecated in v1.20, removed in v1.25",
-	"flowcontrol.apiserver.k8s.io/v1alpha1": "Deprecated in v1.20, removed in v1.25",
+type DeprecatedAPIInfo struct {
+	DeprecationInfo  string
+	Severity         string
+	OperatorCategory string
 }
+
+// Default YAML path relative to the binary
+const defaultYAMLPath = "data/deprecated-apis.yaml"
 
 func NewDeprecatedAPIValidator(repoPath string) *DeprecatedAPIValidator {
 	return &DeprecatedAPIValidator{
-		repoPath: repoPath,
+		repoPath:       repoPath,
+		yamlPath:       defaultYAMLPath,
+		deprecatedAPIs: make(map[string]DeprecatedAPIInfo),
+	}
+}
+
+func NewDeprecatedAPIValidatorWithYAML(repoPath, yamlPath string) *DeprecatedAPIValidator {
+	return &DeprecatedAPIValidator{
+		repoPath:       repoPath,
+		yamlPath:       yamlPath,
+		deprecatedAPIs: make(map[string]DeprecatedAPIInfo),
 	}
 }
 
@@ -46,6 +48,11 @@ func (v *DeprecatedAPIValidator) Name() string {
 
 func (v *DeprecatedAPIValidator) Validate() ([]types.ValidationResult, error) {
 	var results []types.ValidationResult
+
+	// Load deprecated APIs from CSV
+	if err := v.loadDeprecatedAPIs(); err != nil {
+		return results, fmt.Errorf("failed to load deprecated APIs: %w", err)
+	}
 
 	// Find all YAML files
 	yamlFiles, err := v.findYAMLFiles()
@@ -62,6 +69,51 @@ func (v *DeprecatedAPIValidator) Validate() ([]types.ValidationResult, error) {
 	}
 
 	return results, nil
+}
+
+func (v *DeprecatedAPIValidator) loadDeprecatedAPIs() error {
+	// Try to find YAML file relative to the binary first
+	yamlPath := v.yamlPath
+	if _, err := os.Stat(yamlPath); os.IsNotExist(err) {
+		// Try relative to current working directory
+		yamlPath = filepath.Join(".", v.yamlPath)
+		if _, err := os.Stat(yamlPath); os.IsNotExist(err) {
+			return fmt.Errorf("YAML file not found at %s or %s", v.yamlPath, yamlPath)
+		}
+	}
+
+	file, err := os.Open(yamlPath)
+	if err != nil {
+		return fmt.Errorf("failed to open YAML file %s: %w", yamlPath, err)
+	}
+	defer file.Close()
+
+	var config struct {
+		DeprecatedAPIs map[string][]struct {
+			APIVersion       string `yaml:"api_version"`
+			DeprecationInfo  string `yaml:"deprecation_info"`
+			Severity         string `yaml:"severity"`
+			OperatorCategory string `yaml:"operator_category"`
+		} `yaml:"deprecated_apis"`
+	}
+
+	decoder := yaml.NewDecoder(file)
+	if err := decoder.Decode(&config); err != nil {
+		return fmt.Errorf("failed to decode YAML file: %w", err)
+	}
+
+	// Flatten the hierarchical structure into a flat map
+	for _, category := range config.DeprecatedAPIs {
+		for _, api := range category {
+			v.deprecatedAPIs[api.APIVersion] = DeprecatedAPIInfo{
+				DeprecationInfo:  api.DeprecationInfo,
+				Severity:         api.Severity,
+				OperatorCategory: api.OperatorCategory,
+			}
+		}
+	}
+
+	return nil
 }
 
 func (v *DeprecatedAPIValidator) findYAMLFiles() ([]string, error) {
@@ -144,21 +196,21 @@ func (v *DeprecatedAPIValidator) validateResource(resource *yaml.Node, filePath 
 	}
 
 	// Check if API version is deprecated
-	if deprecationInfo, isDeprecated := DeprecatedAPIs[apiVersion]; isDeprecated {
-		severity := "warning"
-		if strings.Contains(deprecationInfo, "removed") {
-			severity = "error"
-		}
-
+	if apiInfo, isDeprecated := v.deprecatedAPIs[apiVersion]; isDeprecated {
 		message := fmt.Sprintf("Using deprecated API version '%s' for resource '%s'", apiVersion, kind)
 		if name != "" {
 			message += fmt.Sprintf(" '%s'", name)
 		}
-		message += fmt.Sprintf(" - %s", deprecationInfo)
+		message += fmt.Sprintf(" - %s", apiInfo.DeprecationInfo)
+
+		// Add operator category context
+		if apiInfo.OperatorCategory != "" {
+			message += fmt.Sprintf(" (%s)", apiInfo.OperatorCategory)
+		}
 
 		results = append(results, types.ValidationResult{
 			Type:     "deprecated-api",
-			Severity: severity,
+			Severity: apiInfo.Severity,
 			Message:  message,
 			File:     filePath,
 			Line:     line,
