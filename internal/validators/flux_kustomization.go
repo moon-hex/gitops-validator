@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitops-validator/internal/types"
+	"github.com/moon-hex/gitops-validator/internal/types"
 
 	"gopkg.in/yaml.v3"
 )

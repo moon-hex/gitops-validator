@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"gitops-validator/internal/cli"
+	"github.com/moon-hex/gitops-validator/internal/cli"
 )
 
 func main() {

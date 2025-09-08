@@ -1,4 +1,4 @@
-module gitops-validator
+module github.com/moon-hex/gitops-validator
 
 go 1.21
 

@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"gitops-validator/internal/validator"
-
+	"github.com/moon-hex/gitops-validator/internal/validator"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

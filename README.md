@@ -15,7 +15,7 @@ A comprehensive validation tool for GitOps repositories that checks for common i
 ### From Source
 
 ```bash
-git clone https://github.com/your-org/gitops-validator.git
+git clone https://github.com/moon-hex/gitops-validator.git
 cd gitops-validator
 go build -o gitops-validator ./main.go
 ```
@@ -23,7 +23,7 @@ go build -o gitops-validator ./main.go
 ### Using Go Install
 
 ```bash
-go install github.com/your-org/gitops-validator@latest
+go install github.com/moon-hex/gitops-validator@latest
 ```
 
 ## Usage

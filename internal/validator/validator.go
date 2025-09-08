@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitops-validator/internal/types"
-	"gitops-validator/internal/validators"
+	"github.com/moon-hex/gitops-validator/internal/types"
+	"github.com/moon-hex/gitops-validator/internal/validators"
 )
 
 type Validator struct {
