@@ -1,6 +1,6 @@
 # GitOps Validator
 
-A comprehensive validation tool for GitOps repositories that checks for common issues in Flux and Kubernetes configurations.
+A comprehensive validation tool for GitOps repositories that checks for common issues in Flux and Kubernetes configurations. Features configurable error handling and exit codes for seamless GitHub Actions integration.
 
 ## Features
 
@@ -9,7 +9,8 @@ A comprehensive validation tool for GitOps repositories that checks for common i
 - **Orphaned Resource Detection**: Identifies YAML files that are not referenced by any kustomization
 - **Deprecated API Detection**: Warns about usage of deprecated Kubernetes API versions
 - **Dependency Chart Generation**: Visualize your GitOps repository structure with Mermaid diagrams
-- **GitHub Actions Integration**: Ready-to-use workflow for CI/CD pipelines with chart generation
+- **Smart Error Handling**: Configurable exit codes for different severity levels (errors, warnings, info)
+- **GitHub Actions Integration**: Ready-to-use workflow for CI/CD pipelines with proper error handling
 
 ## Installation
 
@@ -58,6 +59,50 @@ go install github.com/moon-hex/gitops-validator@latest
 
 # Generate chart for entry point and save to file
 ./gitops-validator --chart mermaid --chart-entrypoint flux-system --chart-output flux-system-deps.md
+
+# Error handling examples
+./gitops-validator --path . --verbose                    # Default: fail on errors only
+./gitops-validator --path . --no-fail-on-errors          # Don't fail on errors
+./gitops-validator --path . --fail-on-warnings           # Also fail on warnings
+./gitops-validator --path . --fail-on-errors --fail-on-warnings --fail-on-info  # Fail on all issues
+```
+
+### Error Handling and Exit Codes
+
+The tool provides configurable error handling with different exit codes for different severity levels:
+
+#### Exit Code Behavior
+
+| Severity | Default Behavior | Exit Code | Description |
+|----------|------------------|-----------|-------------|
+| **Errors** | ✅ Fail | 1 | Critical issues that must be fixed |
+| **Warnings** | ❌ Don't fail | 2 | Issues that should be addressed |
+| **Info** | ❌ Don't fail | 3 | Informational messages |
+
+#### CLI Flags
+
+```bash
+# Default behavior (fail on errors only)
+./gitops-validator --path .
+
+# Don't fail on errors (useful for testing)
+./gitops-validator --path . --no-fail-on-errors
+
+# Fail on warnings too (strict mode)
+./gitops-validator --path . --fail-on-warnings
+
+# Fail on all severity levels (very strict)
+./gitops-validator --path . --fail-on-errors --fail-on-warnings --fail-on-info
+```
+
+#### Configuration File
+
+```yaml
+# .gitops-validator.yaml
+exit-codes:
+  fail-on-errors: true      # Exit with code 1 on errors
+  fail-on-warnings: false  # Exit with code 2 on warnings
+  fail-on-info: false      # Exit with code 3 on info messages
 ```
 
 ### Dependency Chart Generation
@@ -194,6 +239,10 @@ custom-deprecated-apis:
 
 ## GitHub Actions Integration
 
+The tool provides several workflow examples with proper error handling:
+
+### Basic Validation (with Error Handling)
+
 Add this workflow to your `.github/workflows/` directory:
 
 ```yaml
@@ -226,6 +275,38 @@ jobs:
       
     - name: Run validation
       run: ./gitops-validator --path . --verbose
+```
+
+### Advanced Workflow Examples
+
+The repository includes several advanced workflow examples:
+
+- **`examples/github-actions-with-error-handling.yml`**: Comprehensive error handling with conditional chart generation
+- **`examples/github-actions-config-based.yml`**: Configuration-driven validation with proper exit codes
+- **`examples/github-actions-with-chart.yml`**: Chart generation with PR comments
+- **`examples/github-actions-per-entrypoint.yml`**: Per-entrypoint chart generation
+
+#### Key Features of Advanced Workflows:
+
+- ✅ **Proper Error Handling**: Workflows fail appropriately when validation errors are found
+- ✅ **Conditional Execution**: Charts and artifacts only generated for valid configurations
+- ✅ **Smart PR Comments**: Different messages based on validation results
+- ✅ **Configurable Severity**: Choose whether to fail on warnings or just errors
+- ✅ **Artifact Management**: Upload validation results and charts as artifacts
+
+#### Example: Strict Validation (Fail on Warnings)
+
+```yaml
+- name: Strict GitOps Validation
+  run: |
+    gitops-validator --path . --verbose --fail-on-errors --fail-on-warnings
+  continue-on-error: true
+  
+- name: Fail Job on Any Issues
+  if: failure()
+  run: |
+    echo "❌ GitOps validation failed. Please fix all errors and warnings."
+    exit 1
 ```
 
 ## Validation Rules

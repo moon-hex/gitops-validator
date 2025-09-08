@@ -66,6 +66,13 @@ ignore:
     - "*.temp"
     - ".DS_Store"
     - "Thumbs.db"
+
+# Exit code configuration (when to fail the workflow)
+# This controls when the tool exits with non-zero codes in CI/CD pipelines
+exit-codes:
+  fail-on-errors: true      # Exit with code 1 on errors (default: true)
+  fail-on-warnings: false  # Exit with code 2 on warnings (default: false)
+  fail-on-info: false      # Exit with code 3 on info messages (default: false)
   
 # Entry point patterns (files that are considered valid even if not referenced)
 entry-points:

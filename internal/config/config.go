@@ -34,6 +34,9 @@ type GitOpsValidatorConfig struct {
 
 	// Ignore patterns for files/directories
 	Ignore IgnoreConfig `yaml:"ignore"`
+
+	// Exit code configuration
+	ExitCodes ExitCodeConfig `yaml:"exit-codes"`
 }
 
 // EntryPointsConfig defines how to identify entry point resources
@@ -96,6 +99,13 @@ type IgnoreConfig struct {
 	Files       []string `yaml:"files"`       // File patterns to ignore
 }
 
+// ExitCodeConfig defines when the tool should exit with non-zero codes
+type ExitCodeConfig struct {
+	FailOnErrors   bool `yaml:"fail-on-errors"`   // Exit with code 1 on errors (default: true)
+	FailOnWarnings bool `yaml:"fail-on-warnings"` // Exit with code 2 on warnings (default: false)
+	FailOnInfo     bool `yaml:"fail-on-info"`     // Exit with code 3 on info messages (default: false)
+}
+
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
@@ -150,6 +160,11 @@ func DefaultConfig() *Config {
 					".DS_Store",
 					"Thumbs.db",
 				},
+			},
+			ExitCodes: ExitCodeConfig{
+				FailOnErrors:   true,  // Default: fail on errors
+				FailOnWarnings: false, // Default: don't fail on warnings
+				FailOnInfo:     false, // Default: don't fail on info
 			},
 		},
 	}

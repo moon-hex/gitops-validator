@@ -34,10 +34,24 @@ var rootCmd = &cobra.Command{
 - Orphaned resources not referenced by any Kustomization
 - Deprecated Kubernetes API versions
 - Dependency chart generation with Mermaid diagrams
+- Configurable error handling and exit codes for CI/CD integration
 - And more...
 
 This tool helps maintain the health and integrity of your GitOps repositories
 by identifying common issues before they cause problems in production.
+
+Exit Codes:
+- 0: Validation passed (or configured to not fail on found issues)
+- 1: Validation failed with errors (default behavior)
+- 2: Validation failed with warnings (when --fail-on-warnings is used)
+- 3: Validation failed with info messages (when --fail-on-info is used)
+
+Examples:
+  gitops-validator --path . --verbose                    # Default: fail on errors only
+  gitops-validator --path . --no-fail-on-errors          # Don't fail on errors
+  gitops-validator --path . --fail-on-warnings           # Also fail on warnings
+  gitops-validator --path . --chart mermaid              # Generate dependency chart
+  gitops-validator --path . --chart mermaid --chart-output deps.md  # Save chart to file
 
 Version: ` + version + `
 Commit: ` + commit + `
@@ -56,6 +70,14 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&chartOutput, "chart-output", "", "output file for dependency chart (default: stdout)")
 	rootCmd.PersistentFlags().StringVar(&chartEntryPoint, "chart-entrypoint", "", "generate chart for specific entry point only")
 
+	// Exit code configuration flags
+	rootCmd.PersistentFlags().Bool("fail-on-errors", true, "exit with code 1 on errors (default: true)")
+	rootCmd.PersistentFlags().Bool("no-fail-on-errors", false, "don't exit with code 1 on errors (useful for testing)")
+	rootCmd.PersistentFlags().Bool("fail-on-warnings", false, "exit with code 2 on warnings (default: false)")
+	rootCmd.PersistentFlags().Bool("no-fail-on-warnings", false, "don't exit with code 2 on warnings")
+	rootCmd.PersistentFlags().Bool("fail-on-info", false, "exit with code 3 on info messages (default: false)")
+	rootCmd.PersistentFlags().Bool("no-fail-on-info", false, "don't exit with code 3 on info messages")
+
 	// Add version command
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
@@ -73,6 +95,12 @@ func init() {
 	viper.BindPFlag("chart", rootCmd.PersistentFlags().Lookup("chart"))
 	viper.BindPFlag("chart-output", rootCmd.PersistentFlags().Lookup("chart-output"))
 	viper.BindPFlag("chart-entrypoint", rootCmd.PersistentFlags().Lookup("chart-entrypoint"))
+	viper.BindPFlag("fail-on-errors", rootCmd.PersistentFlags().Lookup("fail-on-errors"))
+	viper.BindPFlag("no-fail-on-errors", rootCmd.PersistentFlags().Lookup("no-fail-on-errors"))
+	viper.BindPFlag("fail-on-warnings", rootCmd.PersistentFlags().Lookup("fail-on-warnings"))
+	viper.BindPFlag("no-fail-on-warnings", rootCmd.PersistentFlags().Lookup("no-fail-on-warnings"))
+	viper.BindPFlag("fail-on-info", rootCmd.PersistentFlags().Lookup("fail-on-info"))
+	viper.BindPFlag("no-fail-on-info", rootCmd.PersistentFlags().Lookup("no-fail-on-info"))
 }
 
 func initConfig() {
@@ -129,7 +157,12 @@ func runValidation(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	v := validator.NewValidator(path, verbose, yamlPath)
+	// Get exit code configuration from flags
+	failOnErrors := viper.GetBool("fail-on-errors") && !viper.GetBool("no-fail-on-errors")
+	failOnWarnings := viper.GetBool("fail-on-warnings") && !viper.GetBool("no-fail-on-warnings")
+	failOnInfo := viper.GetBool("fail-on-info") && !viper.GetBool("no-fail-on-info")
+
+	v := validator.NewValidatorWithExitCodes(path, verbose, yamlPath, failOnErrors, failOnWarnings, failOnInfo)
 
 	// If chart generation is requested, handle it separately
 	if chartFormat != "" {

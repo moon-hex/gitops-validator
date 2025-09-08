@@ -44,6 +44,18 @@ func NewValidator(repoPath string, verbose bool, yamlPath string) *Validator {
 	}
 }
 
+// NewValidatorWithExitCodes creates a validator with custom exit code configuration
+func NewValidatorWithExitCodes(repoPath string, verbose bool, yamlPath string, failOnErrors, failOnWarnings, failOnInfo bool) *Validator {
+	v := NewValidator(repoPath, verbose, yamlPath)
+
+	// Override exit code configuration
+	v.config.GitOpsValidator.ExitCodes.FailOnErrors = failOnErrors
+	v.config.GitOpsValidator.ExitCodes.FailOnWarnings = failOnWarnings
+	v.config.GitOpsValidator.ExitCodes.FailOnInfo = failOnInfo
+
+	return v
+}
+
 func (v *Validator) Validate() error {
 	if v.verbose {
 		fmt.Printf("Starting validation of repository: %s\n", v.repoPath)
@@ -107,17 +119,31 @@ func (v *Validator) Validate() error {
 	// Print results
 	v.printResults()
 
-	// Check if there are any errors
+	// Check validation results based on configured exit codes
 	hasErrors := false
+	hasWarnings := false
+	hasInfo := false
+
 	for _, result := range v.results {
-		if result.Severity == "error" {
+		switch result.Severity {
+		case "error":
 			hasErrors = true
-			break
+		case "warning":
+			hasWarnings = true
+		case "info":
+			hasInfo = true
 		}
 	}
 
-	if hasErrors {
+	// Return appropriate error based on configuration
+	if hasErrors && v.config.GitOpsValidator.ExitCodes.FailOnErrors {
 		return fmt.Errorf("validation failed with errors")
+	}
+	if hasWarnings && v.config.GitOpsValidator.ExitCodes.FailOnWarnings {
+		return fmt.Errorf("validation failed with warnings")
+	}
+	if hasInfo && v.config.GitOpsValidator.ExitCodes.FailOnInfo {
+		return fmt.Errorf("validation failed with info messages")
 	}
 
 	return nil
