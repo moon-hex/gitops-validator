@@ -36,14 +36,14 @@ jobs:
       - name: Prepare bundle
         run: |
           # Create bundle directory structure
-          mkdir -p bundle/data
+          mkdir -p data
           
-          # Copy config files to bundle
-          cp data/gitops-validator.yaml bundle/data/
-          cp data/deprecated-apis.yaml bundle/data/
+          # Copy config files to data directory (not bundle/data)
+          cp data/gitops-validator.yaml data/
+          cp data/deprecated-apis.yaml data/
           
           # Create README for bundle
-          cat > bundle/README.md << 'EOF'
+          cat > README.md << 'EOF'
           # GitOps Validator Bundle
           
           This bundle contains everything you need to run GitOps Validator:
@@ -88,12 +88,12 @@ jobs:
           GOOS=windows GOARCH=arm64 go build -o gitops-validator-windows-arm64.exe ./main.go
           
           # Create platform-specific bundles
-          tar -czf gitops-validator-linux-amd64-bundle.tar.gz gitops-validator-linux-amd64 bundle/
-          tar -czf gitops-validator-linux-arm64-bundle.tar.gz gitops-validator-linux-arm64 bundle/
-          tar -czf gitops-validator-darwin-amd64-bundle.tar.gz gitops-validator-darwin-amd64 bundle/
-          tar -czf gitops-validator-darwin-arm64-bundle.tar.gz gitops-validator-darwin-arm64 bundle/
-          zip -r gitops-validator-windows-amd64-bundle.zip gitops-validator-windows-amd64.exe bundle/
-          zip -r gitops-validator-windows-arm64-bundle.zip gitops-validator-windows-arm64.exe bundle/
+          tar -czf gitops-validator-linux-amd64-bundle.tar.gz gitops-validator-linux-amd64 data/ README.md
+          tar -czf gitops-validator-linux-arm64-bundle.tar.gz gitops-validator-linux-arm64 data/ README.md
+          tar -czf gitops-validator-darwin-amd64-bundle.tar.gz gitops-validator-darwin-amd64 data/ README.md
+          tar -czf gitops-validator-darwin-arm64-bundle.tar.gz gitops-validator-darwin-arm64 data/ README.md
+          zip -r gitops-validator-windows-amd64-bundle.zip gitops-validator-windows-amd64.exe data/ README.md
+          zip -r gitops-validator-windows-arm64-bundle.zip gitops-validator-windows-arm64.exe data/ README.md
       
       - name: Create checksums
         run: |
