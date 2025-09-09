@@ -20,7 +20,7 @@ var (
 )
 
 var (
-	version = "1.0.7"
+	version = "1.0.8"
 	commit  = "main"
 	date    = "2025-09-09"
 )

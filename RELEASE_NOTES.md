@@ -1,5 +1,26 @@
 # Release Notes
 
+## Version 1.0.8 (2025-09-09)
+
+### Configuration Consolidation
+- **Single config file**: Consolidated all configuration into one `data/gitops-validator.yaml` file
+- **Integrated deprecated APIs**: Moved deprecated API definitions into main config file
+- **Simplified bundling**: Release bundles now contain only one config file
+
+### What's New
+- Deprecated APIs are now loaded from the main config file instead of separate YAML
+- Cleaner bundle structure with single source of truth
+- Eliminated config file duplication and synchronization issues
+
+### Removed
+- Separate `data/deprecated-apis.yaml` file
+- Duplicate config files from bundle directory
+
+### Upgrade
+Download the latest bundle from the [releases page](https://github.com/moon-hex/gitops-validator/releases) - no changes to usage required.
+
+---
+
 ## Version 1.0.7 (2025-09-09)
 
 ### Configuration
