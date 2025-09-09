@@ -1,5 +1,20 @@
 # Release Notes
 
+## Version 1.0.7 (2025-09-09)
+
+### Configuration
+- **Config file ignore**: Added `gitops-validator.yaml` and `deprecated-apis.yaml` to default ignore patterns
+- **Cleaner validation**: Config files are no longer reported as orphaned resources
+
+### What's New
+- Config files are automatically ignored during validation
+- Reduced noise in validation output for configuration files
+
+### Upgrade
+Download the latest bundle from the [releases page](https://github.com/moon-hex/gitops-validator/releases) - no changes to usage required.
+
+---
+
 ## Version 1.0.6 (2025-09-09)
 
 ### Documentation
