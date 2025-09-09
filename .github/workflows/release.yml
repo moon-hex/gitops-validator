@@ -35,12 +35,9 @@ jobs:
       
       - name: Prepare bundle
         run: |
-          # Create bundle directory structure
+          # Config files are already in data/ directory, no need to copy
+          # Just ensure the data directory exists
           mkdir -p data
-          
-          # Copy config files to data directory (not bundle/data)
-          cp data/gitops-validator.yaml data/
-          cp data/deprecated-apis.yaml data/
           
           # Create README for bundle
           cat > README.md << 'EOF'
