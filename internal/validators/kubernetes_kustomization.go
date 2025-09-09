@@ -116,8 +116,9 @@ func (v *KubernetesKustomizationValidator) validateResourceReferences(kustomizat
 			// Absolute path
 			fullPath = resourcePath
 		} else {
-			// Relative path
-			fullPath = filepath.Join(baseDir, resourcePath)
+			// Relative path - strip ./ prefix if present
+			cleanPath := strings.TrimPrefix(resourcePath, "./")
+			fullPath = filepath.Join(baseDir, cleanPath)
 		}
 
 		// Check if file/directory exists
@@ -149,7 +150,9 @@ func (v *KubernetesKustomizationValidator) validatePatchReferences(kustomization
 		for _, patch := range patches {
 			if patchMap, ok := patch.(map[string]interface{}); ok {
 				if path, ok := patchMap["path"].(string); ok {
-					fullPath := filepath.Join(baseDir, path)
+					// Strip ./ prefix if present
+					cleanPath := strings.TrimPrefix(path, "./")
+					fullPath := filepath.Join(baseDir, cleanPath)
 					if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 						return fmt.Errorf("patch file '%s' does not exist", path)
 					}
@@ -164,7 +167,9 @@ func (v *KubernetesKustomizationValidator) validatePatchReferences(kustomization
 
 		for _, patch := range patches {
 			if patchPath, ok := patch.(string); ok {
-				fullPath := filepath.Join(baseDir, patchPath)
+				// Strip ./ prefix if present
+				cleanPath := strings.TrimPrefix(patchPath, "./")
+				fullPath := filepath.Join(baseDir, cleanPath)
 				if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 					return fmt.Errorf("strategic merge patch '%s' does not exist", patchPath)
 				}

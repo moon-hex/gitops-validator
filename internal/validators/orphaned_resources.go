@@ -175,7 +175,9 @@ func (v *OrphanedResourceValidator) getReferencedFiles(kustomizationFile string)
 					if strings.HasPrefix(resourcePath, "/") {
 						fullPath = resourcePath
 					} else {
-						fullPath = filepath.Join(baseDir, resourcePath)
+						// Strip ./ prefix if present
+						cleanPath := strings.TrimPrefix(resourcePath, "./")
+						fullPath = filepath.Join(baseDir, cleanPath)
 					}
 					referencedFiles = append(referencedFiles, fullPath)
 				}
@@ -188,7 +190,9 @@ func (v *OrphanedResourceValidator) getReferencedFiles(kustomizationFile string)
 		for _, patch := range patches {
 			if patchMap, ok := patch.(map[string]interface{}); ok {
 				if path, ok := patchMap["path"].(string); ok {
-					fullPath := filepath.Join(baseDir, path)
+					// Strip ./ prefix if present
+					cleanPath := strings.TrimPrefix(path, "./")
+					fullPath := filepath.Join(baseDir, cleanPath)
 					referencedFiles = append(referencedFiles, fullPath)
 				}
 			}
@@ -199,7 +203,9 @@ func (v *OrphanedResourceValidator) getReferencedFiles(kustomizationFile string)
 	if patches, ok := kustomization["patchesStrategicMerge"].([]interface{}); ok {
 		for _, patch := range patches {
 			if patchPath, ok := patch.(string); ok {
-				fullPath := filepath.Join(baseDir, patchPath)
+				// Strip ./ prefix if present
+				cleanPath := strings.TrimPrefix(patchPath, "./")
+				fullPath := filepath.Join(baseDir, cleanPath)
 				referencedFiles = append(referencedFiles, fullPath)
 			}
 		}
