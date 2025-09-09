@@ -27,8 +27,12 @@ func NewValidator(repoPath string, verbose bool, yamlPath string) *Validator {
 	// Load configuration from file
 	cfg := config.DefaultConfig()
 
-	// Try to load from .gitops-validator.yaml
-	if _, err := os.Stat(".gitops-validator.yaml"); err == nil {
+	// Try to load from data/gitops-validator.yaml first, then .gitops-validator.yaml for backward compatibility
+	if _, err := os.Stat("data/gitops-validator.yaml"); err == nil {
+		if loadedConfig, err := config.LoadConfig("data/gitops-validator.yaml"); err == nil {
+			cfg = loadedConfig
+		}
+	} else if _, err := os.Stat(".gitops-validator.yaml"); err == nil {
 		if loadedConfig, err := config.LoadConfig(".gitops-validator.yaml"); err == nil {
 			cfg = loadedConfig
 		}

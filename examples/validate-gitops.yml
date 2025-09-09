@@ -11,13 +11,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download GitOps Validator (from release)
+      - name: Download GitOps Validator Bundle (from release)
         run: |
-          curl -L -o gitops-validator https://github.com/moon-hex/gitops-validator/releases/latest/download/gitops-validator-linux-amd64
-          chmod +x gitops-validator
+          curl -L -o gitops-validator-bundle.tar.gz https://github.com/moon-hex/gitops-validator/releases/latest/download/gitops-validator-linux-amd64-bundle.tar.gz
+          tar -xzf gitops-validator-bundle.tar.gz
+          chmod +x gitops-validator-linux-amd64
 
       - name: Validate GitOps Repository
-        run: ./gitops-validator --path . --verbose
+        run: ./gitops-validator-linux-amd64 --path . --verbose
 
   validate-from-source:
     runs-on: ubuntu-latest

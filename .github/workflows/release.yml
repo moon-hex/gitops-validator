@@ -33,6 +33,40 @@ jobs:
       - name: Install dependencies
         run: go mod download
       
+      - name: Prepare bundle
+        run: |
+          # Create bundle directory structure
+          mkdir -p bundle/data
+          
+          # Copy config files to bundle
+          cp data/gitops-validator.yaml bundle/data/
+          cp data/deprecated-apis.yaml bundle/data/
+          
+          # Create README for bundle
+          cat > bundle/README.md << 'EOF'
+          # GitOps Validator Bundle
+          
+          This bundle contains everything you need to run GitOps Validator:
+          
+          - `gitops-validator-*` - The validator binary for your platform
+          - `data/gitops-validator.yaml` - Default configuration file
+          - `data/deprecated-apis.yaml` - Deprecated Kubernetes APIs database
+          
+          ## Usage
+          
+          1. Make the binary executable (Linux/macOS):
+             ```bash
+             chmod +x gitops-validator-linux-amd64
+             ```
+          
+          2. Run validation:
+             ```bash
+             ./gitops-validator-linux-amd64 --path . --verbose
+             ```
+          
+          The validator will automatically use the included config files.
+          EOF
+      
       - name: Build for multiple platforms
         run: |
           # Build for Linux AMD64
@@ -52,16 +86,32 @@ jobs:
           
           # Build for Windows ARM64
           GOOS=windows GOARCH=arm64 go build -o gitops-validator-windows-arm64.exe ./main.go
+          
+          # Create platform-specific bundles
+          tar -czf gitops-validator-linux-amd64-bundle.tar.gz gitops-validator-linux-amd64 bundle/
+          tar -czf gitops-validator-linux-arm64-bundle.tar.gz gitops-validator-linux-arm64 bundle/
+          tar -czf gitops-validator-darwin-amd64-bundle.tar.gz gitops-validator-darwin-amd64 bundle/
+          tar -czf gitops-validator-darwin-arm64-bundle.tar.gz gitops-validator-darwin-arm64 bundle/
+          zip -r gitops-validator-windows-amd64-bundle.zip gitops-validator-windows-amd64.exe bundle/
+          zip -r gitops-validator-windows-arm64-bundle.zip gitops-validator-windows-arm64.exe bundle/
       
       - name: Create checksums
         run: |
-          # Create checksums for all binaries
+          # Create checksums for all binaries and bundles
           sha256sum gitops-validator-linux-amd64 > checksums.txt
           sha256sum gitops-validator-linux-arm64 >> checksums.txt
           sha256sum gitops-validator-darwin-amd64 >> checksums.txt
           sha256sum gitops-validator-darwin-arm64 >> checksums.txt
           sha256sum gitops-validator-windows-amd64.exe >> checksums.txt
           sha256sum gitops-validator-windows-arm64.exe >> checksums.txt
+          
+          # Add bundle checksums
+          sha256sum gitops-validator-linux-amd64-bundle.tar.gz >> checksums.txt
+          sha256sum gitops-validator-linux-arm64-bundle.tar.gz >> checksums.txt
+          sha256sum gitops-validator-darwin-amd64-bundle.tar.gz >> checksums.txt
+          sha256sum gitops-validator-darwin-arm64-bundle.tar.gz >> checksums.txt
+          sha256sum gitops-validator-windows-amd64-bundle.zip >> checksums.txt
+          sha256sum gitops-validator-windows-arm64-bundle.zip >> checksums.txt
       
       - name: Create Release
         id: create_release
@@ -75,6 +125,22 @@ jobs:
             ## GitOps Validator ${{ github.ref_name }}
             
             ### Downloads
+            
+            **Recommended: Bundles (includes config files)**
+            
+            **Linux:**
+            - [gitops-validator-linux-amd64-bundle.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gitops-validator-linux-amd64-bundle.tar.gz) (Intel/AMD 64-bit + config)
+            - [gitops-validator-linux-arm64-bundle.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gitops-validator-linux-arm64-bundle.tar.gz) (ARM 64-bit + config)
+            
+            **macOS:**
+            - [gitops-validator-darwin-amd64-bundle.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gitops-validator-darwin-amd64-bundle.tar.gz) (Intel 64-bit + config)
+            - [gitops-validator-darwin-arm64-bundle.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gitops-validator-darwin-arm64-bundle.tar.gz) (Apple Silicon + config)
+            
+            **Windows:**
+            - [gitops-validator-windows-amd64-bundle.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gitops-validator-windows-amd64-bundle.zip) (Intel/AMD 64-bit + config)
+            - [gitops-validator-windows-arm64-bundle.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gitops-validator-windows-arm64-bundle.zip) (ARM 64-bit + config)
+            
+            **Standalone Binaries (if you prefer to manage config separately)**
             
             **Linux:**
             - [gitops-validator-linux-amd64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gitops-validator-linux-amd64) (Intel/AMD 64-bit)
@@ -181,3 +247,64 @@ jobs:
           asset_path: ./checksums.txt
           asset_name: checksums.txt
           asset_content_type: text/plain
+      
+      # Upload bundles
+      - name: Upload Linux AMD64 Bundle
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./gitops-validator-linux-amd64-bundle.tar.gz
+          asset_name: gitops-validator-linux-amd64-bundle.tar.gz
+          asset_content_type: application/gzip
+      
+      - name: Upload Linux ARM64 Bundle
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./gitops-validator-linux-arm64-bundle.tar.gz
+          asset_name: gitops-validator-linux-arm64-bundle.tar.gz
+          asset_content_type: application/gzip
+      
+      - name: Upload macOS AMD64 Bundle
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./gitops-validator-darwin-amd64-bundle.tar.gz
+          asset_name: gitops-validator-darwin-amd64-bundle.tar.gz
+          asset_content_type: application/gzip
+      
+      - name: Upload macOS ARM64 Bundle
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./gitops-validator-darwin-arm64-bundle.tar.gz
+          asset_name: gitops-validator-darwin-arm64-bundle.tar.gz
+          asset_content_type: application/gzip
+      
+      - name: Upload Windows AMD64 Bundle
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./gitops-validator-windows-amd64-bundle.zip
+          asset_name: gitops-validator-windows-amd64-bundle.zip
+          asset_content_type: application/zip
+      
+      - name: Upload Windows ARM64 Bundle
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./gitops-validator-windows-arm64-bundle.zip
+          asset_name: gitops-validator-windows-arm64-bundle.zip
+          asset_content_type: application/zip

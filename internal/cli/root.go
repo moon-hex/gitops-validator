@@ -62,7 +62,7 @@ Built: ` + date,
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file (default is .gitops-validator.yaml)")
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file (default is data/gitops-validator.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&repoPath, "path", "p", "", "path to GitOps repository (default: current directory)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().StringVar(&yamlPath, "yaml-path", "", "path to deprecated APIs YAML file (default is data/deprecated-apis.yaml)")
