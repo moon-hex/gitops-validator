@@ -46,8 +46,7 @@ jobs:
           This bundle contains everything you need to run GitOps Validator:
           
           - `gitops-validator-*` - The validator binary for your platform
-          - `data/gitops-validator.yaml` - Default configuration file
-          - `data/deprecated-apis.yaml` - Deprecated Kubernetes APIs database
+          - `data/gitops-validator.yaml` - Default configuration file (includes deprecated APIs)
           
           ## Usage
           

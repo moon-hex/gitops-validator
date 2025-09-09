@@ -1,83 +1,244 @@
 # GitOps Validator Configuration
 # This file configures the validation rules and settings
 
-# Repository path to validate (default: current directory)
-path: "."
+gitops-validator:
+  # Repository path to validate (default: current directory)
+  path: "."
 
-# Verbose output
-verbose: false
+  # Verbose output
+  verbose: false
 
-# Path to deprecated APIs YAML file (default: data/deprecated-apis.yaml)
-yaml-path: ""
+  # Path to deprecated APIs YAML file (default: data/deprecated-apis.yaml)
+  yaml-path: ""
 
-# Validation rules configuration
-rules:
-  # Flux Kustomization validation
-  flux-kustomization:
-    enabled: true
-    severity: "error"
-    
-  # Kubernetes Kustomization validation  
-  kubernetes-kustomization:
-    enabled: true
-    severity: "error"
-    
-  # Orphaned resource detection
-  orphaned-resources:
-    enabled: true
-    severity: "warning"
-    
-  # Deprecated API detection
+  # Validation rules configuration
+  rules:
+    # Flux Kustomization validation
+    flux-kustomization:
+      enabled: true
+      severity: "error"
+      
+    # Kubernetes Kustomization validation  
+    kubernetes-kustomization:
+      enabled: true
+      severity: "error"
+      
+    # Orphaned resource detection
+    orphaned-resources:
+      enabled: true
+      severity: "warning"
+      
+    # Deprecated API detection
+    deprecated-apis:
+      enabled: true
+      severity: "warning"
+      
+  # Deprecated APIs configuration
   deprecated-apis:
-    enabled: true
-    severity: "warning"
+    use-embedded: false
+    custom-apis:
+      # Kubernetes Core APIs
+      - api_version: "extensions/v1beta1"
+        deprecation_info: "Deprecated in v1.16, removed in v1.22"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "apps/v1beta1"
+        deprecation_info: "Deprecated in v1.9, removed in v1.16"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "apps/v1beta2"
+        deprecation_info: "Deprecated in v1.9, removed in v1.16"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "policy/v1beta1"
+        deprecation_info: "Deprecated in v1.21, removed in v1.25"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "rbac.authorization.k8s.io/v1beta1"
+        deprecation_info: "Deprecated in v1.17, removed in v1.22"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "rbac.authorization.k8s.io/v1alpha1"
+        deprecation_info: "Deprecated in v1.17, removed in v1.22"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "storage.k8s.io/v1beta1"
+        deprecation_info: "Deprecated in v1.19, removed in v1.22"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "admissionregistration.k8s.io/v1beta1"
+        deprecation_info: "Deprecated in v1.19, removed in v1.22"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "networking.k8s.io/v1beta1"
+        deprecation_info: "Deprecated in v1.19, removed in v1.22"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "scheduling.k8s.io/v1beta1"
+        deprecation_info: "Deprecated in v1.19, removed in v1.22"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "coordination.k8s.io/v1beta1"
+        deprecation_info: "Deprecated in v1.19, removed in v1.22"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "node.k8s.io/v1beta1"
+        deprecation_info: "Deprecated in v1.19, removed in v1.22"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "discovery.k8s.io/v1beta1"
+        deprecation_info: "Deprecated in v1.19, removed in v1.22"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "flowcontrol.apiserver.k8s.io/v1beta1"
+        deprecation_info: "Deprecated in v1.20, removed in v1.25"
+        severity: "error"
+        operator_category: "kubernetes"
+      - api_version: "flowcontrol.apiserver.k8s.io/v1alpha1"
+        deprecation_info: "Deprecated in v1.20, removed in v1.25"
+        severity: "error"
+        operator_category: "kubernetes"
+      # Flux APIs
+      - api_version: "kustomize.toolkit.fluxcd.io/v1alpha1"
+        deprecation_info: "Deprecated in Flux v0.25, removed in v0.30"
+        severity: "warning"
+        operator_category: "flux"
+      - api_version: "kustomize.toolkit.fluxcd.io/v1beta1"
+        deprecation_info: "Deprecated in Flux v0.25, removed in v0.30"
+        severity: "warning"
+        operator_category: "flux"
+      - api_version: "source.toolkit.fluxcd.io/v1alpha1"
+        deprecation_info: "Deprecated in Flux v0.25, removed in v0.30"
+        severity: "warning"
+        operator_category: "flux"
+      - api_version: "source.toolkit.fluxcd.io/v1beta1"
+        deprecation_info: "Deprecated in Flux v0.25, removed in v0.30"
+        severity: "warning"
+        operator_category: "flux"
+      - api_version: "helm.toolkit.fluxcd.io/v1alpha1"
+        deprecation_info: "Deprecated in Flux v0.25, removed in v0.30"
+        severity: "warning"
+        operator_category: "flux"
+      - api_version: "helm.toolkit.fluxcd.io/v1beta1"
+        deprecation_info: "Deprecated in Flux v0.25, removed in v0.30"
+        severity: "warning"
+        operator_category: "flux"
+      - api_version: "notification.toolkit.fluxcd.io/v1alpha1"
+        deprecation_info: "Deprecated in Flux v0.25, removed in v0.30"
+        severity: "warning"
+        operator_category: "flux"
+      - api_version: "notification.toolkit.fluxcd.io/v1beta1"
+        deprecation_info: "Deprecated in Flux v0.25, removed in v0.30"
+        severity: "warning"
+        operator_category: "flux"
+      - api_version: "image.toolkit.fluxcd.io/v1alpha1"
+        deprecation_info: "Deprecated in Flux v0.25, removed in v0.30"
+        severity: "warning"
+        operator_category: "flux"
+      - api_version: "image.toolkit.fluxcd.io/v1beta1"
+        deprecation_info: "Deprecated in Flux v0.25, removed in v0.30"
+        severity: "warning"
+        operator_category: "flux"
+      # External Secrets Operator APIs
+      - api_version: "external-secrets.io/v1alpha1"
+        deprecation_info: "Deprecated in ESO v0.5, removed in v0.8"
+        severity: "warning"
+        operator_category: "external-secrets"
+      - api_version: "external-secrets.io/v1beta1"
+        deprecation_info: "Deprecated in ESO v0.5, removed in v0.8"
+        severity: "warning"
+        operator_category: "external-secrets"
+      # Flagger APIs
+      - api_version: "flagger.app/v1alpha3"
+        deprecation_info: "Deprecated in Flagger v1.0, removed in v1.5"
+        severity: "warning"
+        operator_category: "flagger"
+      - api_version: "flagger.app/v1beta1"
+        deprecation_info: "Deprecated in Flagger v1.0, removed in v1.5"
+        severity: "warning"
+        operator_category: "flagger"
+      # ArgoCD APIs
+      - api_version: "argoproj.io/v1alpha1"
+        deprecation_info: "Deprecated in ArgoCD v2.0, removed in v2.5"
+        severity: "warning"
+        operator_category: "argocd"
+      - api_version: "argoproj.io/v1beta1"
+        deprecation_info: "Deprecated in ArgoCD v2.0, removed in v2.5"
+        severity: "warning"
+        operator_category: "argocd"
+      # cert-manager APIs
+      - api_version: "cert-manager.io/v1alpha2"
+        deprecation_info: "Deprecated in cert-manager v1.0, removed in v1.5"
+        severity: "warning"
+        operator_category: "cert-manager"
+      - api_version: "cert-manager.io/v1alpha3"
+        deprecation_info: "Deprecated in cert-manager v1.0, removed in v1.5"
+        severity: "warning"
+        operator_category: "cert-manager"
+      # Traefik APIs
+      - api_version: "traefik.containo.us/v1alpha1"
+        deprecation_info: "Deprecated in Traefik v2.0, removed in v2.5"
+        severity: "warning"
+        operator_category: "traefik"
+      - api_version: "traefik.io/v1alpha1"
+        deprecation_info: "Deprecated in Traefik v2.0, removed in v2.5"
+        severity: "warning"
+        operator_category: "traefik"
+      # Prometheus Operator APIs
+      - api_version: "monitoring.coreos.com/v1"
+        deprecation_info: "Deprecated in Prometheus Operator v0.50, removed in v0.60"
+        severity: "warning"
+        operator_category: "prometheus-operator"
+      - api_version: "monitoring.coreos.com/v1alpha1"
+        deprecation_info: "Deprecated in Prometheus Operator v0.50, removed in v0.60"
+        severity: "warning"
+        operator_category: "prometheus-operator"
+    overrides: {}
+    disabled: []
+
+  # Chart generation settings
+  chart:
+    enabled: false
+    format: "mermaid"  # mermaid, tree, json
+    output: ""        # output file path (empty = stdout)
+    include-orphaned: true
+    include-metadata: true
+
+  # Ignore patterns for files/directories
+  ignore:
+    directories:
+      - ".git/**"
+      - ".github/**"
+      - ".gitlab-ci/**"
+      - ".circleci/**"
+      - ".azure-pipelines/**"
+      - "node_modules/**"
+      - "vendor/**"
+      - "tmp/**"
+      - "temp/**"
+      - "build/**"
+      - "dist/**"
+      - "bin/**"
+    files:
+      - "*.log"
+      - "*.tmp"
+      - "*.temp"
+      - ".DS_Store"
+      - "Thumbs.db"
+      - "**/gitops-validator.yaml"
+      - "**/validate-gitops.yml"
+      - "**/.github/workflows/*.yml"
+
+  # Exit code configuration (when to fail the workflow)
+  # This controls when the tool exits with non-zero codes in CI/CD pipelines
+  exit-codes:
+    fail-on-errors: true      # Exit with code 1 on errors (default: true)
+    fail-on-warnings: false  # Exit with code 2 on warnings (default: false)
+    fail-on-info: false      # Exit with code 3 on info messages (default: false)
     
-# Custom deprecated APIs (additional to built-in list)
-custom-deprecated-apis:
-  # Example:
-  # "mycompany.com/v1alpha1": "Deprecated in v1.0, will be removed in v2.0"
-
-# Chart generation settings
-chart:
-  enabled: false
-  format: "mermaid"  # mermaid, tree, json
-  output: ""        # output file path (empty = stdout)
-  include-orphaned: true
-  include-metadata: true
-
-# Ignore patterns for files/directories
-ignore:
-  directories:
-    - ".git/**"
-    - ".github/**"
-    - ".gitlab-ci/**"
-    - ".circleci/**"
-    - ".azure-pipelines/**"
-    - "node_modules/**"
-    - "vendor/**"
-    - "tmp/**"
-    - "temp/**"
-    - "build/**"
-    - "dist/**"
-    - "bin/**"
-  files:
-    - "*.log"
-    - "*.tmp"
-    - "*.temp"
-    - ".DS_Store"
-    - "Thumbs.db"
-    - "gitops-validator.yaml"
-    - "deprecated-apis.yaml"
-
-# Exit code configuration (when to fail the workflow)
-# This controls when the tool exits with non-zero codes in CI/CD pipelines
-exit-codes:
-  fail-on-errors: true      # Exit with code 1 on errors (default: true)
-  fail-on-warnings: false  # Exit with code 2 on warnings (default: false)
-  fail-on-info: false      # Exit with code 3 on info messages (default: false)
-  
-# Entry point patterns (files that are considered valid even if not referenced)
-entry-points:
-  - "**/kustomization.yaml"
-  - "**/kustomization.yml"
-  - "**/flux-system/**"
+  # Entry point patterns (files that are considered valid even if not referenced)
+  entry-points:
+    patterns:
+      - "**/kustomization.yaml"
+      - "**/kustomization.yml"
+      - "**/flux-system/**"

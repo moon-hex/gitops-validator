@@ -220,6 +220,15 @@ func (c *Config) ShouldIgnorePath(path string) bool {
 
 	// Check file patterns
 	for _, pattern := range c.GitOpsValidator.Ignore.Files {
+		// Normalize pattern separators
+		normalizedPattern := filepath.ToSlash(pattern)
+
+		// Try matching against the full path first
+		if matched, _ := filepath.Match(normalizedPattern, normalizedPath); matched {
+			return true
+		}
+
+		// Also try matching against just the filename for simple patterns
 		if matched, _ := filepath.Match(pattern, filepath.Base(path)); matched {
 			return true
 		}

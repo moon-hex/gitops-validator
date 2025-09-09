@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/moon-hex/gitops-validator/internal/config"
 	"github.com/moon-hex/gitops-validator/internal/types"
 
 	"gopkg.in/yaml.v3"
@@ -14,6 +15,7 @@ import (
 type DeprecatedAPIValidator struct {
 	repoPath       string
 	yamlPath       string
+	config         *config.Config
 	deprecatedAPIs map[string]DeprecatedAPIInfo
 }
 
@@ -38,6 +40,14 @@ func NewDeprecatedAPIValidatorWithYAML(repoPath, yamlPath string) *DeprecatedAPI
 	return &DeprecatedAPIValidator{
 		repoPath:       repoPath,
 		yamlPath:       yamlPath,
+		deprecatedAPIs: make(map[string]DeprecatedAPIInfo),
+	}
+}
+
+func NewDeprecatedAPIValidatorWithConfig(repoPath string, cfg *config.Config) *DeprecatedAPIValidator {
+	return &DeprecatedAPIValidator{
+		repoPath:       repoPath,
+		config:         cfg,
 		deprecatedAPIs: make(map[string]DeprecatedAPIInfo),
 	}
 }
@@ -72,6 +82,20 @@ func (v *DeprecatedAPIValidator) Validate() ([]types.ValidationResult, error) {
 }
 
 func (v *DeprecatedAPIValidator) loadDeprecatedAPIs() error {
+	// If config is available, use it instead of loading from YAML file
+	if v.config != nil {
+		// Load from config
+		for _, api := range v.config.GitOpsValidator.DeprecatedAPIs.CustomAPIs {
+			v.deprecatedAPIs[api.APIVersion] = DeprecatedAPIInfo{
+				DeprecationInfo:  api.DeprecationInfo,
+				Severity:         api.Severity,
+				OperatorCategory: api.OperatorCategory,
+			}
+		}
+		return nil
+	}
+
+	// Fallback to loading from YAML file
 	// Try to find YAML file relative to the binary first
 	yamlPath := v.yamlPath
 	if _, err := os.Stat(yamlPath); os.IsNotExist(err) {

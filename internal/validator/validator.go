@@ -96,7 +96,7 @@ func (v *Validator) Validate() (int, error) {
 	if v.yamlPath != "" {
 		deprecatedAPIValidator = validators.NewDeprecatedAPIValidatorWithYAML(v.repoPath, v.yamlPath)
 	} else {
-		deprecatedAPIValidator = validators.NewDeprecatedAPIValidator(v.repoPath)
+		deprecatedAPIValidator = validators.NewDeprecatedAPIValidatorWithConfig(v.repoPath, v.config)
 	}
 
 	validatorList := []validators.ValidatorInterface{
