@@ -194,9 +194,13 @@ func (v *FluxKustomizationValidator) validatePathReference(kustomization FluxKus
 		return fmt.Errorf("path is required")
 	}
 
-	// Check if path exists relative to repository root
-	path := filepath.Join(v.repoPath, kustomization.Path)
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	// Normalize and resolve path
+	fullPath, shouldProcess := ResolvePath(v.repoPath, kustomization.Path)
+	if !shouldProcess {
+		return fmt.Errorf("unsupported path format: %s", kustomization.Path)
+	}
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return fmt.Errorf("path '%s' does not exist", kustomization.Path)
 	}
 

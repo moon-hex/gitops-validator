@@ -170,15 +170,8 @@ func (v *OrphanedResourceValidator) getReferencedFiles(kustomizationFile string)
 	if resources, ok := kustomization["resources"].([]interface{}); ok {
 		for _, resource := range resources {
 			if resourcePath, ok := resource.(string); ok {
-				if !strings.HasPrefix(resourcePath, "http://") && !strings.HasPrefix(resourcePath, "https://") {
-					var fullPath string
-					if strings.HasPrefix(resourcePath, "/") {
-						fullPath = resourcePath
-					} else {
-						// Strip ./ prefix if present
-						cleanPath := strings.TrimPrefix(resourcePath, "./")
-						fullPath = filepath.Join(baseDir, cleanPath)
-					}
+				fullPath, shouldProcess := ResolvePath(baseDir, resourcePath)
+				if shouldProcess {
 					referencedFiles = append(referencedFiles, fullPath)
 				}
 			}
@@ -190,10 +183,10 @@ func (v *OrphanedResourceValidator) getReferencedFiles(kustomizationFile string)
 		for _, patch := range patches {
 			if patchMap, ok := patch.(map[string]interface{}); ok {
 				if path, ok := patchMap["path"].(string); ok {
-					// Strip ./ prefix if present
-					cleanPath := strings.TrimPrefix(path, "./")
-					fullPath := filepath.Join(baseDir, cleanPath)
-					referencedFiles = append(referencedFiles, fullPath)
+					fullPath, shouldProcess := ResolvePath(baseDir, path)
+					if shouldProcess {
+						referencedFiles = append(referencedFiles, fullPath)
+					}
 				}
 			}
 		}
@@ -203,10 +196,10 @@ func (v *OrphanedResourceValidator) getReferencedFiles(kustomizationFile string)
 	if patches, ok := kustomization["patchesStrategicMerge"].([]interface{}); ok {
 		for _, patch := range patches {
 			if patchPath, ok := patch.(string); ok {
-				// Strip ./ prefix if present
-				cleanPath := strings.TrimPrefix(patchPath, "./")
-				fullPath := filepath.Join(baseDir, cleanPath)
-				referencedFiles = append(referencedFiles, fullPath)
+				fullPath, shouldProcess := ResolvePath(baseDir, patchPath)
+				if shouldProcess {
+					referencedFiles = append(referencedFiles, fullPath)
+				}
 			}
 		}
 	}

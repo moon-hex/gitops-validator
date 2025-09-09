@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/moon-hex/gitops-validator/internal/types"
 
@@ -107,18 +106,11 @@ func (v *KubernetesKustomizationValidator) validateResourceReferences(kustomizat
 			continue
 		}
 
-		// Handle different path formats
-		var fullPath string
-		if strings.HasPrefix(resourcePath, "http://") || strings.HasPrefix(resourcePath, "https://") {
+		// Normalize and resolve path
+		fullPath, shouldProcess := ResolvePath(baseDir, resourcePath)
+		if !shouldProcess {
 			// Skip remote resources for now
 			continue
-		} else if strings.HasPrefix(resourcePath, "/") {
-			// Absolute path
-			fullPath = resourcePath
-		} else {
-			// Relative path - strip ./ prefix if present
-			cleanPath := strings.TrimPrefix(resourcePath, "./")
-			fullPath = filepath.Join(baseDir, cleanPath)
 		}
 
 		// Check if file/directory exists
@@ -150,11 +142,11 @@ func (v *KubernetesKustomizationValidator) validatePatchReferences(kustomization
 		for _, patch := range patches {
 			if patchMap, ok := patch.(map[string]interface{}); ok {
 				if path, ok := patchMap["path"].(string); ok {
-					// Strip ./ prefix if present
-					cleanPath := strings.TrimPrefix(path, "./")
-					fullPath := filepath.Join(baseDir, cleanPath)
-					if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-						return fmt.Errorf("patch file '%s' does not exist", path)
+					fullPath, shouldProcess := ResolvePath(baseDir, path)
+					if shouldProcess {
+						if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+							return fmt.Errorf("patch file '%s' does not exist", path)
+						}
 					}
 				}
 			}
@@ -167,11 +159,11 @@ func (v *KubernetesKustomizationValidator) validatePatchReferences(kustomization
 
 		for _, patch := range patches {
 			if patchPath, ok := patch.(string); ok {
-				// Strip ./ prefix if present
-				cleanPath := strings.TrimPrefix(patchPath, "./")
-				fullPath := filepath.Join(baseDir, cleanPath)
-				if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-					return fmt.Errorf("strategic merge patch '%s' does not exist", patchPath)
+				fullPath, shouldProcess := ResolvePath(baseDir, patchPath)
+				if shouldProcess {
+					if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+						return fmt.Errorf("strategic merge patch '%s' does not exist", patchPath)
+					}
 				}
 			}
 		}
