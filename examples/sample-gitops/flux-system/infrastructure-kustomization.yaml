@@ -1,13 +1,16 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: production
+  name: infrastructure
   namespace: flux-system
 spec:
-  path: ./examples/sample-gitops/clusters/production
+  path: ./examples/sample-gitops/infrastructure
   sourceRef:
     kind: GitRepository
     name: gitops-repo
-  interval: 1m
+  interval: 5m
   prune: true
   wait: true
+  timeout: 10m
+  retryInterval: 1m
+  serviceAccountName: flux-system

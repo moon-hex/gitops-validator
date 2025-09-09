@@ -1,5 +1,20 @@
 # Release Notes
 
+## Version 1.0.6 (2025-09-09)
+
+### Documentation
+- **Flux kustomization paths**: Added clarification that Flux kustomization `path` fields must be relative to repository root
+- **Path resolution guide**: Updated documentation to explain the difference between Flux and Kubernetes kustomization path resolution
+
+### What's New
+- Clear documentation on Flux kustomization path requirements
+- Better understanding of path resolution contexts
+
+### Upgrade
+Download the latest bundle from the [releases page](https://github.com/moon-hex/gitops-validator/releases) - no changes to usage required.
+
+---
+
 ## Version 1.0.5 (2025-09-09)
 
 ### Improvements

@@ -4,8 +4,8 @@ A comprehensive validation tool for GitOps repositories that checks for common i
 
 ## Features
 
-- **Flux Kustomization Validation**: Validates Flux Kustomization resources for broken path and source references
-- **Kubernetes Kustomization Validation**: Validates kustomization.yaml files for broken resource and patch references
+- **Flux Kustomization Validation**: Validates Flux Kustomization resources for broken path and source references (paths must be relative to repository root)
+- **Kubernetes Kustomization Validation**: Validates kustomization.yaml files for broken resource and patch references (paths relative to kustomization file)
 - **Orphaned Resource Detection**: Identifies YAML files that are not referenced by any kustomization
 - **Deprecated API Detection**: Warns about usage of deprecated Kubernetes API versions
 - **Dependency Chart Generation**: Visualize your GitOps repository structure with Mermaid diagrams
@@ -314,6 +314,11 @@ The validator provides clear, actionable output:
 ⚠️ [WARNING] File 'unused-config.yaml' is not referenced by any kustomization and is not an entry point (File: config/unused-config.yaml)
 ⚠️ [WARNING] Using deprecated API version 'extensions/v1beta1' for resource 'Deployment' 'my-app' - Deprecated in v1.16, removed in v1.22 (File: apps/my-app.yaml:3)
 ```
+
+## Documentation
+
+- **[Flux Kustomization Paths](docs/FLUX_KUSTOMIZATION_PATHS.md)**: Detailed guide on path requirements for Flux vs Kubernetes kustomizations
+- **[Exit Codes](docs/EXIT_CODES.md)**: Complete reference for validation exit codes
 
 ## Contributing
 

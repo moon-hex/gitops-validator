@@ -6,5 +6,6 @@ resources:
   - ../../apps/backend
   - ../../apps/frontend
   - ../../infrastructure/postgres
+  - ./namespace.yml
 # patches:
 #   - path: patches/production-patch.yaml
