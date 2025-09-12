@@ -99,12 +99,19 @@ func (v *KubernetesKustomizationValidator) validateResourceReferences(kustomizat
 	}
 
 	baseDir := filepath.Dir(kustomizationFile)
+	seenResources := make(map[string]bool)
 
 	for _, resource := range resources {
 		resourcePath, ok := resource.(string)
 		if !ok {
 			continue
 		}
+
+		// Check for duplicate resource references
+		if seenResources[resourcePath] {
+			return fmt.Errorf("duplicate resource reference: '%s'", resourcePath)
+		}
+		seenResources[resourcePath] = true
 
 		// Normalize and resolve path
 		fullPath, shouldProcess := ResolvePath(baseDir, resourcePath)
@@ -138,10 +145,17 @@ func (v *KubernetesKustomizationValidator) validatePatchReferences(kustomization
 	// Check patches
 	if patches, ok := kustomization["patches"].([]interface{}); ok {
 		baseDir := filepath.Dir(kustomizationFile)
+		seenPatches := make(map[string]bool)
 
 		for _, patch := range patches {
 			if patchMap, ok := patch.(map[string]interface{}); ok {
 				if path, ok := patchMap["path"].(string); ok {
+					// Check for duplicate patch references
+					if seenPatches[path] {
+						return fmt.Errorf("duplicate patch reference: '%s'", path)
+					}
+					seenPatches[path] = true
+
 					fullPath, shouldProcess := ResolvePath(baseDir, path)
 					if shouldProcess {
 						if _, err := os.Stat(fullPath); os.IsNotExist(err) {
@@ -156,9 +170,16 @@ func (v *KubernetesKustomizationValidator) validatePatchReferences(kustomization
 	// Check patchesStrategicMerge
 	if patches, ok := kustomization["patchesStrategicMerge"].([]interface{}); ok {
 		baseDir := filepath.Dir(kustomizationFile)
+		seenStrategicPatches := make(map[string]bool)
 
 		for _, patch := range patches {
 			if patchPath, ok := patch.(string); ok {
+				// Check for duplicate strategic merge patch references
+				if seenStrategicPatches[patchPath] {
+					return fmt.Errorf("duplicate strategic merge patch reference: '%s'", patchPath)
+				}
+				seenStrategicPatches[patchPath] = true
+
 				fullPath, shouldProcess := ResolvePath(baseDir, patchPath)
 				if shouldProcess {
 					if _, err := os.Stat(fullPath); os.IsNotExist(err) {
