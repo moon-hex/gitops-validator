@@ -20,7 +20,7 @@ var (
 )
 
 var (
-	version = "1.1.0"
+	version = "1.1.2"
 	commit  = "main"
 	date    = "2025-09-16"
 )
@@ -52,6 +52,8 @@ Examples:
   gitops-validator --path . --fail-on-warnings           # Also fail on warnings
   gitops-validator --path . --chart mermaid              # Generate dependency chart
   gitops-validator --path . --chart mermaid --chart-output deps.md  # Save chart to file
+  gitops-validator --path . --output-format markdown     # GitHub-friendly table output
+  gitops-validator --path . --output-format json         # JSON for machine consumption
 
 Version: ` + version + `
 Commit: ` + commit + `
