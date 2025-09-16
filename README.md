@@ -321,8 +321,8 @@ Warns about usage of deprecated API versions across Kubernetes and common operat
 - `apps/v1beta2` (removed in v1.16)
 - Kubernetes betas removed in 1.22/1.25/1.26 (Ingress, PDB, EndpointSlice, FlowControl, etc.)
 - Flux Toolkit legacy APIs (v1alpha1/v1beta1) — deprecated; exact removals pending upstream confirmations
-- External Secrets Operator `v1alpha1`/`v1beta1` — deprecated; exact removals pending
-- External Secrets Operator `v1beta1` — removed in ESO v0.17.0; `v1alpha1` deprecated
+- ESO `v1alpha1`/`v1beta1` — deprecated; exact removals pending
+- ESO `v1beta1` — removed in ESO v0.17.0; `v1alpha1` deprecated
 - Flagger `flagger.app` v1alpha3/v1beta1 — deprecated; exact removals pending
 - Argo CD `argoproj.io` v1alpha1/v1beta1 — deprecated; exact removals pending per CRD
 - cert-manager `cert-manager.io` v1alpha2/v1alpha3 — deprecated; exact removals pending
@@ -331,14 +331,14 @@ Warns about usage of deprecated API versions across Kubernetes and common operat
 
 ## Output Format
 
-The validator provides clear, actionable output:
+The validator provides clear, actionable output. Some messages are automatically condensed to keep PR comments readable, while preserving all critical details.
 
 ```
 📋 Validation Results (3 issues found):
 
 ❌ [ERROR] Invalid path reference: path 'apps/backend' does not exist (File: flux/kustomizations/backend.yaml:15) (Resource: backend)
 ⚠️ [WARNING] File 'unused-config.yaml' is not referenced by any kustomization and is not an entry point (File: config/unused-config.yaml)
-⚠️ [WARNING] Using deprecated API version 'extensions/v1beta1' for resource 'Deployment' 'my-app' - Deprecated in v1.16, removed in v1.22 (File: apps/my-app.yaml:3)
+⚠️ [WARNING] Deprecated API 'extensions/v1beta1' for resource 'Deployment' 'my-app' - Deprecated in v1.16, removed in v1.22 (File: apps/my-app.yaml:3)
 ```
 
 ## Documentation
