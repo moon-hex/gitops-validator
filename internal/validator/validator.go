@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,6 +22,8 @@ type Validator struct {
 	parser   *parser.ResourceParser
 	graph    *parser.ResourceGraph
 	results  []types.ValidationResult
+	// new: optional output format ("", "markdown", "json")
+	outputFormat string
 }
 
 func NewValidator(repoPath string, verbose bool, yamlPath string) *Validator {
@@ -39,12 +42,13 @@ func NewValidator(repoPath string, verbose bool, yamlPath string) *Validator {
 	}
 
 	return &Validator{
-		repoPath: repoPath,
-		verbose:  verbose,
-		yamlPath: yamlPath,
-		config:   cfg,
-		parser:   parser.NewResourceParser(repoPath, cfg),
-		results:  make([]types.ValidationResult, 0),
+		repoPath:     repoPath,
+		verbose:      verbose,
+		yamlPath:     yamlPath,
+		config:       cfg,
+		parser:       parser.NewResourceParser(repoPath, cfg),
+		results:      make([]types.ValidationResult, 0),
+		outputFormat: "",
 	}
 }
 
@@ -265,25 +269,51 @@ func (v *Validator) printResults() {
 		return
 	}
 
-	fmt.Printf("\n📋 Validation Results (%d issues found):\n\n", len(v.results))
-
-	for _, result := range v.results {
-		icon := getSeverityIcon(result.Severity)
-		fmt.Printf("%s [%s] %s", icon, strings.ToUpper(result.Severity), result.Message)
-
-		if result.File != "" {
-			fmt.Printf(" (File: %s", result.File)
-			if result.Line > 0 {
-				fmt.Printf(":%d", result.Line)
+	// Default human-readable output
+	if v.outputFormat == "" {
+		fmt.Printf("\n📋 Validation Results (%d issues found):\n\n", len(v.results))
+		for _, result := range v.results {
+			icon := getSeverityIcon(result.Severity)
+			fmt.Printf("%s [%s] %s", icon, strings.ToUpper(result.Severity), result.Message)
+			if result.File != "" {
+				fmt.Printf(" (File: %s", result.File)
+				if result.Line > 0 {
+					fmt.Printf(":%d", result.Line)
+				}
+				fmt.Printf(")")
 			}
-			fmt.Printf(")")
+			if result.Resource != "" {
+				fmt.Printf(" (Resource: %s)", result.Resource)
+			}
+			fmt.Println()
 		}
+		return
+	}
 
-		if result.Resource != "" {
-			fmt.Printf(" (Resource: %s)", result.Resource)
-		}
-
+	// Markdown table output
+	if v.outputFormat == "markdown" || v.outputFormat == "md" {
+		fmt.Println("## GitOps Validator Results")
 		fmt.Println()
+		fmt.Printf("%d issues found\n\n", len(v.results))
+		fmt.Println("| Severity | Type | Message | File | Line | Resource |")
+		fmt.Println("|---|---|---|---|---:|---|")
+		for _, r := range v.results {
+			msg := strings.ReplaceAll(r.Message, "|", "\\|")
+			fmt.Printf("| %s | %s | %s | %s | %d | %s |\n",
+				strings.ToUpper(r.Severity), r.Type, msg, r.File, r.Line, r.Resource)
+		}
+		return
+	}
+
+	// JSON output
+	if v.outputFormat == "json" {
+		b, err := json.MarshalIndent(v.results, "", "  ")
+		if err != nil {
+			fmt.Printf("Error formatting JSON output: %v\n", err)
+			return
+		}
+		fmt.Println(string(b))
+		return
 	}
 }
 

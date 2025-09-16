@@ -62,6 +62,10 @@ go install github.com/moon-hex/gitops-validator@latest
 
 # Error handling examples
 ./gitops-validator --path . --verbose                    # Default: fail on errors only
+# GitHub-friendly output (tables)
+./gitops-validator --path . --output-format markdown     # Print results as a Markdown table
+./gitops-validator --path . --output-format json         # Print results as JSON
+
 ./gitops-validator --path . --no-fail-on-errors          # Don't fail on errors
 ./gitops-validator --path . --fail-on-warnings           # Also fail on warnings
 ./gitops-validator --path . --fail-on-errors --fail-on-warnings --fail-on-info  # Fail on all issues
@@ -239,7 +243,7 @@ custom-deprecated-apis:
 
 ## GitHub Actions Integration
 
-Add this workflow to your `.github/workflows/` directory:
+Add this workflow to your `.github/workflows/` directory (includes PR comment with Markdown table):
 
 ```yaml
 name: Validate GitOps
@@ -261,7 +265,21 @@ jobs:
           chmod +x gitops-validator
 
       - name: Validate GitOps Repository
-        run: ./gitops-validator --path . --verbose
+        run: ./gitops-validator --path . --output-format markdown | tee validator.md
+
+      - name: Comment PR with Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('validator.md','utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
 ```
 
 A complete example is available in `examples/validate-gitops.yml`.
