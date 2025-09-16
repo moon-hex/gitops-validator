@@ -297,11 +297,18 @@ Identifies YAML files that:
 
 ### Deprecated API Detection
 
-Warns about usage of deprecated Kubernetes API versions:
+Warns about usage of deprecated API versions across Kubernetes and common operators:
 - `extensions/v1beta1` (removed in v1.22)
 - `apps/v1beta1` (removed in v1.16)
 - `apps/v1beta2` (removed in v1.16)
-- And many more...
+- Kubernetes betas removed in 1.22/1.25/1.26 (Ingress, PDB, EndpointSlice, FlowControl, etc.)
+- Flux Toolkit legacy APIs (v1alpha1/v1beta1) — deprecated; exact removals pending upstream confirmations
+- External Secrets Operator `v1alpha1`/`v1beta1` — deprecated; exact removals pending
+- Flagger `flagger.app` v1alpha3/v1beta1 — deprecated; exact removals pending
+- Argo CD `argoproj.io` v1alpha1/v1beta1 — deprecated; exact removals pending per CRD
+- cert-manager `cert-manager.io` v1alpha2/v1alpha3 — deprecated; exact removals pending
+- Traefik `traefik.containo.us`/`traefik.io` v1alpha1 — deprecated; exact removals pending
+- Istio legacy groups: `config.istio.io`, `authentication.istio.io`, `rbac.istio.io` — deprecated; exact removals pending
 
 ## Output Format
 
