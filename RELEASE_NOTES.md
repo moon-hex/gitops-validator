@@ -1,6 +1,6 @@
 # Release Notes
 
-## Version 1.1.1 (2025-09-16)
+## Version 1.1.2 (2025-09-16)
 
 ### New
 - **CI-friendly output**: Added `--output-format` flag supporting `markdown` and `json` for easy PR comments and automation.
