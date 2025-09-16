@@ -20,7 +20,7 @@ var (
 )
 
 var (
-	version = "1.0.11"
+	version = "1.1.0"
 	commit  = "main"
 	date    = "2025-09-16"
 )
@@ -78,6 +78,9 @@ func init() {
 	rootCmd.PersistentFlags().Bool("fail-on-info", false, "exit with code 3 on info messages (default: false)")
 	rootCmd.PersistentFlags().Bool("no-fail-on-info", false, "don't exit with code 3 on info messages")
 
+	// Output formatting for CI (markdown/json)
+	rootCmd.PersistentFlags().String("output-format", "", "output format for results: markdown, json, or default")
+
 	// Add version command
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
@@ -101,6 +104,7 @@ func init() {
 	viper.BindPFlag("no-fail-on-warnings", rootCmd.PersistentFlags().Lookup("no-fail-on-warnings"))
 	viper.BindPFlag("fail-on-info", rootCmd.PersistentFlags().Lookup("fail-on-info"))
 	viper.BindPFlag("no-fail-on-info", rootCmd.PersistentFlags().Lookup("no-fail-on-info"))
+	viper.BindPFlag("output-format", rootCmd.PersistentFlags().Lookup("output-format"))
 }
 
 func initConfig() {
@@ -128,6 +132,7 @@ func runValidation(cmd *cobra.Command, args []string) error {
 	yamlPath := viper.GetString("yaml-path")
 	chartOutput := viper.GetString("chart-output")
 	chartEntryPoint := viper.GetString("chart-entrypoint")
+	outputFormat := viper.GetString("output-format")
 
 	// Check if path was explicitly set by user (not just default)
 	pathExplicitlySet := cmd.Flags().Changed("path")
@@ -163,6 +168,9 @@ func runValidation(cmd *cobra.Command, args []string) error {
 	failOnInfo := viper.GetBool("fail-on-info") && !viper.GetBool("no-fail-on-info")
 
 	v := validator.NewValidatorWithExitCodes(path, verbose, yamlPath, failOnErrors, failOnWarnings, failOnInfo)
+	if outputFormat != "" {
+		v.SetOutputFormat(outputFormat)
+	}
 
 	// If chart generation is requested, handle it separately
 	if chartFormat != "" {
