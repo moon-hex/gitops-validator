@@ -17,8 +17,22 @@ jobs:
           tar -xzf gitops-validator-bundle.tar.gz
           chmod +x gitops-validator-linux-amd64
 
-      - name: Validate GitOps Repository
-        run: ./gitops-validator-linux-amd64 --path . --verbose
+      - name: Validate GitOps Repository (Markdown table)
+        run: ./gitops-validator-linux-amd64 --path . --output-format markdown | tee validator.md
+
+      - name: Comment PR with Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('validator.md','utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
 
   validate-from-source:
     runs-on: ubuntu-latest
@@ -44,8 +58,22 @@ jobs:
           go mod download
           go build -o gitops-validator ./main.go
 
-      - name: Validate GitOps Repository
-        run: ./gitops-validator --path . --verbose
+      - name: Validate GitOps Repository (Markdown table)
+        run: ./gitops-validator --path . --output-format markdown | tee validator.md
+
+      - name: Comment PR with Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('validator.md','utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
 
   validate-with-docker:
     runs-on: ubuntu-latest
@@ -70,7 +98,21 @@ jobs:
           ENTRYPOINT ["./gitops-validator"]
           EOF
 
-      - name: Build and run validation
+      - name: Build and run validation (Markdown table)
         run: |
           docker build -t gitops-validator .
-          docker run --rm -v $(pwd):/workspace -w /workspace gitops-validator --path . --verbose
+          docker run --rm -v $(pwd):/workspace -w /workspace gitops-validator --path . --output-format markdown | tee validator.md
+
+      - name: Comment PR with Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('validator.md','utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });

@@ -353,3 +353,14 @@ func (v *Validator) findYAMLFiles() ([]string, error) {
 
 	return yamlFiles, err
 }
+
+// SetOutputFormat configures how results are printed: "markdown", "json" or default human output
+func (v *Validator) SetOutputFormat(format string) {
+	f := strings.ToLower(strings.TrimSpace(format))
+	switch f {
+	case "markdown", "md", "json":
+		v.outputFormat = f
+	default:
+		v.outputFormat = ""
+	}
+}
