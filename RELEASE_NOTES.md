@@ -1,5 +1,22 @@
 # Release Notes
 
+## Version 1.1.1 (2025-09-16)
+
+### New
+- **CI-friendly output**: Added `--output-format` flag supporting `markdown` and `json` for easy PR comments and automation.
+
+### Docs
+- README: usage examples for `--output-format` and updated GitHub Actions workflow to post results as a Markdown table.
+- Examples: `examples/validate-gitops.yml` now demonstrates commenting results back to the PR.
+
+### Config Updates
+- External Secrets Operator: mark `external-secrets.io/v1beta1` as removed in ESO `v0.17.0`.
+- Added Istio legacy CRDs to deprecated list.
+- Corrected Kubernetes deprecation windows (node/discovery/flowcontrol; RBAC v1alpha1) and removed incorrect Prometheus Operator deprecations.
+
+### Upgrade
+Binary and bundle available on Releases. For PR comments, run with `--output-format markdown` and pipe to your comment step.
+
 ## Version 1.0.8 (2025-09-09)
 
 ### Configuration Consolidation
