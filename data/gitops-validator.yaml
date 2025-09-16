@@ -145,7 +145,7 @@ gitops-validator:
         severity: "warning"
         operator_category: "external-secrets"
       - api_version: "external-secrets.io/v1beta1"
-        deprecation_info: "Deprecated; exact removal version unknown (pending official confirmation)"
+        deprecation_info: "Deprecated; removed in External Secrets Operator v0.17.0"
         severity: "warning"
         operator_category: "external-secrets"
       # Flagger APIs
