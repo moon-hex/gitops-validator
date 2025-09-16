@@ -10,7 +10,7 @@
 - Examples: `examples/validate-gitops.yml` now demonstrates commenting results back to the PR.
 
 ### Config Updates
-- External Secrets Operator: mark `external-secrets.io/v1beta1` as removed in ESO `v0.17.0`.
+- ESO: mark `external-secrets.io/v1beta1` as removed in ESO `v0.17.0`.
 - Added Istio legacy CRDs to deprecated list.
 - Corrected Kubernetes deprecation windows (node/discovery/flowcontrol; RBAC v1alpha1) and removed incorrect Prometheus Operator deprecations.
 

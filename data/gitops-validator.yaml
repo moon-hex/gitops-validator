@@ -139,13 +139,13 @@ gitops-validator:
         deprecation_info: "Deprecated; exact removal version unknown (pending official confirmation)"
         severity: "warning"
         operator_category: "flux"
-      # External Secrets Operator APIs
+      # ESO APIs
       - api_version: "external-secrets.io/v1alpha1"
         deprecation_info: "Deprecated; exact removal version unknown (pending official confirmation)"
         severity: "warning"
         operator_category: "external-secrets"
       - api_version: "external-secrets.io/v1beta1"
-        deprecation_info: "Deprecated; removed in External Secrets Operator v0.17.0"
+        deprecation_info: "Deprecated; removed in ESO v0.17.0"
         severity: "warning"
         operator_category: "external-secrets"
       # Flagger APIs

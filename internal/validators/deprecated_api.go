@@ -221,7 +221,7 @@ func (v *DeprecatedAPIValidator) validateResource(resource *yaml.Node, filePath 
 
 	// Check if API version is deprecated
 	if apiInfo, isDeprecated := v.deprecatedAPIs[apiVersion]; isDeprecated {
-		message := fmt.Sprintf("Using deprecated API version '%s' for resource '%s'", apiVersion, kind)
+		message := fmt.Sprintf("'%s' API for '%s'", apiVersion, kind)
 		if name != "" {
 			message += fmt.Sprintf(" '%s'", name)
 		}
