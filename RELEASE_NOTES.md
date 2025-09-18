@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.1.4 (2025-09-18)
+
+- removed several Flux apis from warning
+
 ## Version 1.1.2 (2025-09-16)
 
 ### New

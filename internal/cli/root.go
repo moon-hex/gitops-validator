@@ -20,9 +20,9 @@ var (
 )
 
 var (
-	version = "1.1.3"
+	version = "1.1.4"
 	commit  = "main"
-	date    = "2025-09-16"
+	date    = "2025-09-18"
 )
 
 var rootCmd = &cobra.Command{
