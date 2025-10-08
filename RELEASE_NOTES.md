@@ -1,5 +1,28 @@
 # Release Notes
 
+## Version 1.1.5 (2025-10-08)
+
+### New Features
+- **Flux PostBuild Variables Validation**: Added new validator for Flux Kustomization `postBuild.substitute` variable naming
+  - Enforces Flux variable naming rules: must start with underscore or letter, followed by letters, digits, or underscores only
+  - Catches common mistakes like using dashes (Kubernetes naming convention) in Flux variables
+  - Pattern: `^[_a-zA-Z][_a-zA-Z0-9]*$`
+  - Helps prevent runtime errors from invalid variable names
+
+### Configuration
+- Added `flux-postbuild-variables` rule to configuration (enabled by default with error severity)
+- Updated example configurations to include the new validation rule
+
+### Documentation
+- Added detailed Flux PostBuild Variables validation section to README
+- Included valid/invalid variable name examples
+- Added test examples demonstrating correct and incorrect variable usage
+
+### Upgrade
+Binary and bundle available on Releases. The new validator is enabled by default and will catch invalid Flux variable names in your `postBuild.substitute` sections.
+
+---
+
 ## Version 1.1.4 (2025-09-18)
 
 - removed several Flux apis from warning

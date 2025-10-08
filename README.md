@@ -5,6 +5,7 @@ A comprehensive validation tool for GitOps repositories that checks for common i
 ## Features
 
 - **Flux Kustomization Validation**: Validates Flux Kustomization resources for broken path and source references (paths must be relative to repository root)
+- **Flux PostBuild Variables Validation**: Validates Flux postBuild substitute variable naming (no dashes allowed, must match pattern `^[_a-zA-Z][_a-zA-Z0-9]*$`)
 - **Kubernetes Kustomization Validation**: Validates kustomization.yaml files for broken resource and patch references (paths relative to kustomization file)
 - **Orphaned Resource Detection**: Identifies YAML files that are not referenced by any kustomization
 - **Deprecated API Detection**: Warns about usage of deprecated Kubernetes API versions
@@ -204,6 +205,9 @@ rules:
   flux-kustomization:
     enabled: true
     severity: "error"
+  flux-postbuild-variables:
+    enabled: true
+    severity: "error"
   kubernetes-kustomization:
     enabled: true
     severity: "error"
@@ -299,6 +303,24 @@ Validates Flux Kustomization resources for:
 - Missing or invalid `path` references
 - Missing or invalid `sourceRef.name` references
 - Broken file system paths
+
+### Flux PostBuild Variables Validation
+
+Validates Flux Kustomization `postBuild.substitute` variable naming:
+- Variable names must start with underscore (`_`) or letter (`a-z`, `A-Z`)
+- Variable names can only contain letters, digits, and underscores
+- **Dashes are NOT allowed** (common mistake from Kubernetes naming conventions)
+- Pattern: `^[_a-zA-Z][_a-zA-Z0-9]*$`
+
+**Valid examples:**
+- `${CLUSTER_NAME}`
+- `${_private_var}`
+- `${env_123}`
+
+**Invalid examples:**
+- `${cluster-name}` ❌ (contains dash)
+- `${123var}` ❌ (starts with digit)
+- `${my.var}` ❌ (contains dot)
 
 ### Kubernetes Kustomization Validation
 

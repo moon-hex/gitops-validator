@@ -17,6 +17,11 @@ gitops-validator:
     flux-kustomization:
       enabled: true
       severity: "error"
+    
+    # Flux PostBuild Variables validation
+    flux-postbuild-variables:
+      enabled: true
+      severity: "error"
       
     # Kubernetes Kustomization validation  
     kubernetes-kustomization:

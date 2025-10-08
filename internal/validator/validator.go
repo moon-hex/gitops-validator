@@ -108,6 +108,7 @@ func (v *Validator) Validate() (int, error) {
 		validators.NewKubernetesKustomizationValidator(v.repoPath),
 		validators.NewOrphanedResourceValidatorWithConfig(v.repoPath, v.config),
 		deprecatedAPIValidator,
+		validators.NewFluxPostBuildVariablesValidator(v.repoPath),
 	}
 
 	// Run all validators
