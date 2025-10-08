@@ -109,14 +109,10 @@ jobs:
           sha256sum gitops-validator-windows-amd64-bundle.zip >> checksums.txt
           sha256sum gitops-validator-windows-arm64-bundle.zip >> checksums.txt
       
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           body: |
             ## GitOps Validator ${{ github.ref_name }}
             
@@ -173,134 +169,17 @@ jobs:
             ```
           draft: false
           prerelease: false
-      
-      - name: Upload Linux AMD64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-linux-amd64
-          asset_name: gitops-validator-linux-amd64
-          asset_content_type: application/octet-stream
-      
-      - name: Upload Linux ARM64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-linux-arm64
-          asset_name: gitops-validator-linux-arm64
-          asset_content_type: application/octet-stream
-      
-      - name: Upload macOS AMD64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-darwin-amd64
-          asset_name: gitops-validator-darwin-amd64
-          asset_content_type: application/octet-stream
-      
-      - name: Upload macOS ARM64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-darwin-arm64
-          asset_name: gitops-validator-darwin-arm64
-          asset_content_type: application/octet-stream
-      
-      - name: Upload Windows AMD64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-windows-amd64.exe
-          asset_name: gitops-validator-windows-amd64.exe
-          asset_content_type: application/octet-stream
-      
-      - name: Upload Windows ARM64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-windows-arm64.exe
-          asset_name: gitops-validator-windows-arm64.exe
-          asset_content_type: application/octet-stream
-      
-      - name: Upload Checksums
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./checksums.txt
-          asset_name: checksums.txt
-          asset_content_type: text/plain
-      
-      # Upload bundles
-      - name: Upload Linux AMD64 Bundle
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-linux-amd64-bundle.tar.gz
-          asset_name: gitops-validator-linux-amd64-bundle.tar.gz
-          asset_content_type: application/gzip
-      
-      - name: Upload Linux ARM64 Bundle
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-linux-arm64-bundle.tar.gz
-          asset_name: gitops-validator-linux-arm64-bundle.tar.gz
-          asset_content_type: application/gzip
-      
-      - name: Upload macOS AMD64 Bundle
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-darwin-amd64-bundle.tar.gz
-          asset_name: gitops-validator-darwin-amd64-bundle.tar.gz
-          asset_content_type: application/gzip
-      
-      - name: Upload macOS ARM64 Bundle
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-darwin-arm64-bundle.tar.gz
-          asset_name: gitops-validator-darwin-arm64-bundle.tar.gz
-          asset_content_type: application/gzip
-      
-      - name: Upload Windows AMD64 Bundle
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-windows-amd64-bundle.zip
-          asset_name: gitops-validator-windows-amd64-bundle.zip
-          asset_content_type: application/zip
-      
-      - name: Upload Windows ARM64 Bundle
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./gitops-validator-windows-arm64-bundle.zip
-          asset_name: gitops-validator-windows-arm64-bundle.zip
-          asset_content_type: application/zip
+          files: |
+            gitops-validator-linux-amd64
+            gitops-validator-linux-arm64
+            gitops-validator-darwin-amd64
+            gitops-validator-darwin-arm64
+            gitops-validator-windows-amd64.exe
+            gitops-validator-windows-arm64.exe
+            gitops-validator-linux-amd64-bundle.tar.gz
+            gitops-validator-linux-arm64-bundle.tar.gz
+            gitops-validator-darwin-amd64-bundle.tar.gz
+            gitops-validator-darwin-arm64-bundle.tar.gz
+            gitops-validator-windows-amd64-bundle.zip
+            gitops-validator-windows-arm64-bundle.zip
+            checksums.txt
