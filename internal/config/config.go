@@ -49,13 +49,14 @@ type EntryPointsConfig struct {
 
 // RulesConfig defines which validation rules to run
 type RulesConfig struct {
-	FluxKustomization       RuleConfig `yaml:"flux-kustomization"`
-	FluxPostBuildVariables  RuleConfig `yaml:"flux-postbuild-variables"`
-	KubernetesKustomization RuleConfig `yaml:"kubernetes-kustomization"`
-	OrphanedResources       RuleConfig `yaml:"orphaned-resources"`
-	DeprecatedAPIs          RuleConfig `yaml:"deprecated-apis"`
-	DoubleReferences        RuleConfig `yaml:"double-references"`
-	CircularDependencies    RuleConfig `yaml:"circular-dependencies"`
+	FluxKustomization               RuleConfig `yaml:"flux-kustomization"`
+	FluxPostBuildVariables          RuleConfig `yaml:"flux-postbuild-variables"`
+	KubernetesKustomization         RuleConfig `yaml:"kubernetes-kustomization"`
+	KustomizationVersionConsistency RuleConfig `yaml:"kustomization-version-consistency"`
+	OrphanedResources               RuleConfig `yaml:"orphaned-resources"`
+	DeprecatedAPIs                  RuleConfig `yaml:"deprecated-apis"`
+	DoubleReferences                RuleConfig `yaml:"double-references"`
+	CircularDependencies            RuleConfig `yaml:"circular-dependencies"`
 }
 
 // RuleConfig defines a single validation rule
@@ -119,13 +120,14 @@ func DefaultConfig() *Config {
 				Patterns:   []string{"clusters/*", "apps/*", "infrastructure/*"},
 			},
 			Rules: RulesConfig{
-				FluxKustomization:       RuleConfig{Enabled: true, Severity: "error"},
-				FluxPostBuildVariables:  RuleConfig{Enabled: true, Severity: "error"},
-				KubernetesKustomization: RuleConfig{Enabled: true, Severity: "error"},
-				OrphanedResources:       RuleConfig{Enabled: true, Severity: "warning"},
-				DeprecatedAPIs:          RuleConfig{Enabled: true, Severity: "warning"},
-				DoubleReferences:        RuleConfig{Enabled: true, Severity: "warning"},
-				CircularDependencies:    RuleConfig{Enabled: true, Severity: "error"},
+				FluxKustomization:               RuleConfig{Enabled: true, Severity: "error"},
+				FluxPostBuildVariables:          RuleConfig{Enabled: true, Severity: "error"},
+				KubernetesKustomization:         RuleConfig{Enabled: true, Severity: "error"},
+				KustomizationVersionConsistency: RuleConfig{Enabled: true, Severity: "error"},
+				OrphanedResources:               RuleConfig{Enabled: true, Severity: "warning"},
+				DeprecatedAPIs:                  RuleConfig{Enabled: true, Severity: "warning"},
+				DoubleReferences:                RuleConfig{Enabled: true, Severity: "warning"},
+				CircularDependencies:            RuleConfig{Enabled: true, Severity: "error"},
 			},
 			DeprecatedAPIs: DeprecatedAPIsConfig{
 				UseEmbedded: true,
@@ -263,6 +265,7 @@ func (c *Config) Validate() error {
 		c.GitOpsValidator.Rules.FluxKustomization,
 		c.GitOpsValidator.Rules.FluxPostBuildVariables,
 		c.GitOpsValidator.Rules.KubernetesKustomization,
+		c.GitOpsValidator.Rules.KustomizationVersionConsistency,
 		c.GitOpsValidator.Rules.OrphanedResources,
 		c.GitOpsValidator.Rules.DeprecatedAPIs,
 		c.GitOpsValidator.Rules.DoubleReferences,
@@ -307,6 +310,8 @@ func (c *Config) IsRuleEnabled(ruleName string) bool {
 		return c.GitOpsValidator.Rules.FluxPostBuildVariables.Enabled
 	case "kubernetes-kustomization":
 		return c.GitOpsValidator.Rules.KubernetesKustomization.Enabled
+	case "kustomization-version-consistency":
+		return c.GitOpsValidator.Rules.KustomizationVersionConsistency.Enabled
 	case "orphaned-resources":
 		return c.GitOpsValidator.Rules.OrphanedResources.Enabled
 	case "deprecated-apis":
@@ -329,6 +334,8 @@ func (c *Config) GetRuleSeverity(ruleName string) string {
 		return c.GitOpsValidator.Rules.FluxPostBuildVariables.Severity
 	case "kubernetes-kustomization":
 		return c.GitOpsValidator.Rules.KubernetesKustomization.Severity
+	case "kustomization-version-consistency":
+		return c.GitOpsValidator.Rules.KustomizationVersionConsistency.Severity
 	case "orphaned-resources":
 		return c.GitOpsValidator.Rules.OrphanedResources.Severity
 	case "deprecated-apis":

@@ -20,7 +20,7 @@ var (
 )
 
 var (
-	version = "1.1.5"
+	version = "1.2.0"
 	commit  = "main"
 	date    = "2025-10-08"
 )
@@ -31,7 +31,8 @@ var rootCmd = &cobra.Command{
 	Long: `A comprehensive validation tool for GitOps repositories that checks for:
 - Flux Kustomization link integrity
 - Flux postBuild variable naming (no dashes allowed)
-- Kubernetes Kustomization link integrity  
+- Kubernetes Kustomization link integrity
+- Kustomization apiVersion consistency (no v1/v1beta1 mismatches)
 - Orphaned resources not referenced by any Kustomization
 - Deprecated Kubernetes API versions
 - Dependency chart generation with Mermaid diagrams

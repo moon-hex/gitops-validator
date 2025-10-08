@@ -27,6 +27,11 @@ gitops-validator:
     kubernetes-kustomization:
       enabled: true
       severity: "error"
+    
+    # Kustomization Version Consistency validation
+    kustomization-version-consistency:
+      enabled: true
+      severity: "error"
       
     # Orphaned resource detection
     orphaned-resources:

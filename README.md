@@ -7,6 +7,7 @@ A comprehensive validation tool for GitOps repositories that checks for common i
 - **Flux Kustomization Validation**: Validates Flux Kustomization resources for broken path and source references (paths must be relative to repository root)
 - **Flux PostBuild Variables Validation**: Validates Flux postBuild substitute variable naming (no dashes allowed, must match pattern `^[_a-zA-Z][_a-zA-Z0-9]*$`)
 - **Kubernetes Kustomization Validation**: Validates kustomization.yaml files for broken resource and patch references (paths relative to kustomization file)
+- **Kustomization Version Consistency**: Ensures consistent `kustomize.config.k8s.io` apiVersion across dependency trees (prevents v1/v1beta1 mismatches)
 - **Orphaned Resource Detection**: Identifies YAML files that are not referenced by any kustomization
 - **Deprecated API Detection**: Warns about usage of deprecated Kubernetes API versions
 - **Dependency Chart Generation**: Visualize your GitOps repository structure with Mermaid diagrams
@@ -211,6 +212,9 @@ rules:
   kubernetes-kustomization:
     enabled: true
     severity: "error"
+  kustomization-version-consistency:
+    enabled: true
+    severity: "error"
   orphaned-resources:
     enabled: true
     severity: "warning"
@@ -328,6 +332,21 @@ Validates kustomization.yaml files for:
 - Broken `resources` references
 - Broken `patches` references
 - Broken `patchesStrategicMerge` references
+
+### Kustomization Version Consistency
+
+Validates that kustomization apiVersions are consistent across dependency trees:
+- Checks that all kustomizations in a dependency chain use the same `kustomize.config.k8s.io` version
+- Prevents mixing `kustomize.config.k8s.io/v1` with `kustomize.config.k8s.io/v1beta1`
+- Helps avoid build failures from version incompatibilities
+
+**Why this matters:**
+When a kustomization references another kustomization (via a directory resource), they should use the same apiVersion to avoid compatibility issues with kustomize builds.
+
+**Example error:**
+```
+❌ Kustomization apiVersion mismatch: 'base/kustomization.yaml' references '../common' (version: kustomize.config.k8s.io/v1beta1) but uses version kustomize.config.k8s.io/v1
+```
 
 ### Orphaned Resource Detection
 

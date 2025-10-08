@@ -1,5 +1,28 @@
 # Release Notes
 
+## Version 1.2.0 (2025-10-08)
+
+### New Features
+- **Kustomization Version Consistency Validation**: Added validator to ensure consistent `kustomize.config.k8s.io` apiVersions across dependency trees
+  - Prevents mixing v1 with v1beta1 in the same dependency chain
+  - Catches version mismatches that can cause kustomize build failures
+  - Validates all resource references that point to other kustomizations
+  - Helps maintain compatibility across your entire GitOps repository structure
+
+### Configuration
+- Added `kustomization-version-consistency` rule to configuration (enabled by default with error severity)
+- Updated example configurations to include the new validation rule
+
+### Documentation
+- Added detailed Kustomization Version Consistency section to README
+- Included explanation of why version consistency matters
+- Added test examples demonstrating valid and invalid version combinations
+
+### Upgrade
+Binary and bundle available on Releases. The new validator is enabled by default and will catch apiVersion mismatches in your kustomization dependency trees.
+
+---
+
 ## Version 1.1.5 (2025-10-08)
 
 ### New Features
