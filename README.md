@@ -237,6 +237,7 @@ ignore:
     - "build/**"
     - "dist/**"
     - "bin/**"
+    - "examples/test-cases/**"  # Exclude test cases with intentional errors
   files:
     - "*.log"
     - "*.tmp"

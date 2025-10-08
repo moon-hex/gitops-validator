@@ -239,6 +239,7 @@ gitops-validator:
       - "build/**"
       - "dist/**"
       - "bin/**"
+      - "examples/test-cases/**"
     files:
       - "*.log"
       - "*.tmp"

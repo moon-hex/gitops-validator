@@ -156,6 +156,7 @@ func DefaultConfig() *Config {
 					"build/**",
 					"dist/**",
 					"bin/**",
+					"examples/test-cases/**",
 				},
 				Files: []string{
 					"*.log",
