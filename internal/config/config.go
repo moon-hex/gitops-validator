@@ -50,6 +50,7 @@ type EntryPointsConfig struct {
 // RulesConfig defines which validation rules to run
 type RulesConfig struct {
 	FluxKustomization       RuleConfig `yaml:"flux-kustomization"`
+	FluxPostBuildVariables  RuleConfig `yaml:"flux-postbuild-variables"`
 	KubernetesKustomization RuleConfig `yaml:"kubernetes-kustomization"`
 	OrphanedResources       RuleConfig `yaml:"orphaned-resources"`
 	DeprecatedAPIs          RuleConfig `yaml:"deprecated-apis"`
@@ -119,6 +120,7 @@ func DefaultConfig() *Config {
 			},
 			Rules: RulesConfig{
 				FluxKustomization:       RuleConfig{Enabled: true, Severity: "error"},
+				FluxPostBuildVariables:  RuleConfig{Enabled: true, Severity: "error"},
 				KubernetesKustomization: RuleConfig{Enabled: true, Severity: "error"},
 				OrphanedResources:       RuleConfig{Enabled: true, Severity: "warning"},
 				DeprecatedAPIs:          RuleConfig{Enabled: true, Severity: "warning"},
@@ -259,6 +261,7 @@ func (c *Config) Validate() error {
 	// Validate rule severities
 	rules := []RuleConfig{
 		c.GitOpsValidator.Rules.FluxKustomization,
+		c.GitOpsValidator.Rules.FluxPostBuildVariables,
 		c.GitOpsValidator.Rules.KubernetesKustomization,
 		c.GitOpsValidator.Rules.OrphanedResources,
 		c.GitOpsValidator.Rules.DeprecatedAPIs,
@@ -300,6 +303,8 @@ func (c *Config) IsRuleEnabled(ruleName string) bool {
 	switch ruleName {
 	case "flux-kustomization":
 		return c.GitOpsValidator.Rules.FluxKustomization.Enabled
+	case "flux-postbuild-variables":
+		return c.GitOpsValidator.Rules.FluxPostBuildVariables.Enabled
 	case "kubernetes-kustomization":
 		return c.GitOpsValidator.Rules.KubernetesKustomization.Enabled
 	case "orphaned-resources":
@@ -320,6 +325,8 @@ func (c *Config) GetRuleSeverity(ruleName string) string {
 	switch ruleName {
 	case "flux-kustomization":
 		return c.GitOpsValidator.Rules.FluxKustomization.Severity
+	case "flux-postbuild-variables":
+		return c.GitOpsValidator.Rules.FluxPostBuildVariables.Severity
 	case "kubernetes-kustomization":
 		return c.GitOpsValidator.Rules.KubernetesKustomization.Severity
 	case "orphaned-resources":

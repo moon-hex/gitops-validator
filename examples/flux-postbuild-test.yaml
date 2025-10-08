@@ -1,0 +1,38 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: valid-variables-example
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./clusters/production
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  postBuild:
+    substitute:
+      # Valid variable names
+      CLUSTER_NAME: "production"
+      ENV: "prod"
+      _private_var: "secret"
+      region123: "us-east-1"
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: invalid-variables-example
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./clusters/staging
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  postBuild:
+    substitute:
+      # Invalid variable names (will be caught by validator)
+      # cluster-name: "staging"        # ERROR: contains dash
+      # my-env-var: "staging"          # ERROR: contains dashes
+      # region.name: "us-west-1"       # ERROR: contains dot (if tested)
+
