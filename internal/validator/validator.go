@@ -106,6 +106,7 @@ func (v *Validator) Validate() (int, error) {
 	validatorList := []validators.ValidatorInterface{
 		validators.NewFluxKustomizationValidator(v.repoPath),
 		validators.NewKubernetesKustomizationValidator(v.repoPath),
+		validators.NewKustomizationVersionConsistencyValidator(v.repoPath),
 		validators.NewOrphanedResourceValidatorWithConfig(v.repoPath, v.config),
 		deprecatedAPIValidator,
 		validators.NewFluxPostBuildVariablesValidator(v.repoPath),

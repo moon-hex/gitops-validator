@@ -1,0 +1,22 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: valid-variables-example
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./examples/sample-gitops-passing
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  postBuild:
+    substitute:
+      # All valid variable names
+      CLUSTER_NAME: "production"
+      ENV: "prod"
+      _private_var: "secret"
+      region123: "us-east-1"
+      API_ENDPOINT: "https://api.example.com"
+      DATABASE_URL: "postgres://db.example.com"
+
