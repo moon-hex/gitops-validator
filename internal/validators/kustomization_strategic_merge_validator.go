@@ -1,8 +1,7 @@
 package validators
 
 import (
-	"fmt"
-
+	"github.com/moon-hex/gitops-validator/internal/context"
 	"github.com/moon-hex/gitops-validator/internal/types"
 )
 
@@ -22,34 +21,27 @@ func (v *KustomizationStrategicMergeValidator) Name() string {
 	return "Kustomization Strategic Merge Validator"
 }
 
-func (v *KustomizationStrategicMergeValidator) Validate() ([]types.ValidationResult, error) {
+// Validate implements the GraphValidator interface
+func (v *KustomizationStrategicMergeValidator) Validate(ctx *context.ValidationContext) ([]types.ValidationResult, error) {
 	var results []types.ValidationResult
 
-	// Find all kustomization files
-	kustomizationFiles, err := v.parser.FindKustomizationFiles()
-	if err != nil {
-		return results, fmt.Errorf("failed to find kustomization files: %w", err)
-	}
+	// Get all Kubernetes Kustomization resources from the graph
+	kustomizations := ctx.Graph.GetKubernetesKustomizations()
 
 	// Create validation rule set
 	ruleSet := NewValidationRuleSet()
 	ruleSet.AddRule(&StrategicMergePatchReferenceRule{})
 
-	// Validate each kustomization file
-	for _, kustomizationFile := range kustomizationFiles {
-		kustomization, err := v.parser.ParseKustomizationFile(kustomizationFile)
-		if err != nil {
-			results = append(results, types.ValidationResult{
-				Type:     "kubernetes-kustomization",
-				Severity: "error",
-				Message:  fmt.Sprintf("Failed to parse kustomization file: %s", err.Error()),
-				File:     kustomizationFile,
-			})
-			continue
+	// Validate each kustomization
+	for _, kustomization := range kustomizations {
+		// Convert ParsedResource to KustomizationFile format for compatibility
+		kustomizationFile := &KustomizationFile{
+			Path:    kustomization.File,
+			Content: kustomization.Content,
 		}
 
 		// Run validation rules
-		ruleResults := ruleSet.Validate(kustomization)
+		ruleResults := ruleSet.Validate(kustomizationFile)
 		results = append(results, ruleResults...)
 	}
 

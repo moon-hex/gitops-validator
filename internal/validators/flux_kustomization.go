@@ -3,12 +3,10 @@ package validators
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
+	"github.com/moon-hex/gitops-validator/internal/context"
+	"github.com/moon-hex/gitops-validator/internal/parser"
 	"github.com/moon-hex/gitops-validator/internal/types"
-
-	"gopkg.in/yaml.v3"
 )
 
 type FluxKustomizationValidator struct {
@@ -25,18 +23,16 @@ func (v *FluxKustomizationValidator) Name() string {
 	return "Flux Kustomization Validator"
 }
 
-func (v *FluxKustomizationValidator) Validate() ([]types.ValidationResult, error) {
+// Validate implements the GraphValidator interface
+func (v *FluxKustomizationValidator) Validate(ctx *context.ValidationContext) ([]types.ValidationResult, error) {
 	var results []types.ValidationResult
 
-	// Find all Flux Kustomization resources
-	kustomizations, err := v.findFluxKustomizations()
-	if err != nil {
-		return results, fmt.Errorf("failed to find Flux Kustomizations: %w", err)
-	}
+	// Get all Flux Kustomization resources from the graph
+	fluxKustomizations := ctx.Graph.GetFluxKustomizations()
 
-	for _, kustomization := range kustomizations {
+	for _, kustomization := range fluxKustomizations {
 		// Validate path references
-		if err := v.validatePathReference(kustomization); err != nil {
+		if err := v.validatePathReference(kustomization, ctx); err != nil {
 			results = append(results, types.ValidationResult{
 				Type:     "flux-kustomization",
 				Severity: "error",
@@ -47,7 +43,7 @@ func (v *FluxKustomizationValidator) Validate() ([]types.ValidationResult, error
 		}
 
 		// Validate source references
-		if err := v.validateSourceReference(kustomization); err != nil {
+		if err := v.validateSourceReference(kustomization, ctx); err != nil {
 			results = append(results, types.ValidationResult{
 				Type:     "flux-kustomization",
 				Severity: "error",
@@ -61,158 +57,80 @@ func (v *FluxKustomizationValidator) Validate() ([]types.ValidationResult, error
 	return results, nil
 }
 
-type FluxKustomization struct {
-	File   string
-	Name   string
-	Path   string
-	Source string
-	Line   int
-}
-
-func (v *FluxKustomizationValidator) findFluxKustomizations() ([]FluxKustomization, error) {
-	var kustomizations []FluxKustomization
-
-	err := filepath.Walk(v.repoPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		if !strings.HasSuffix(strings.ToLower(path), ".yaml") && !strings.HasSuffix(strings.ToLower(path), ".yml") {
-			return nil
-		}
-
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		decoder := yaml.NewDecoder(file)
-		var doc yaml.Node
-
-		for {
-			err := decoder.Decode(&doc)
-			if err != nil {
-				break
-			}
-
-			if doc.Kind == yaml.DocumentNode && len(doc.Content) > 0 {
-				resource := doc.Content[0]
-				if v.isFluxKustomization(resource) {
-					kustomization := v.extractKustomizationInfo(resource, path)
-					if kustomization != nil {
-						kustomizations = append(kustomizations, *kustomization)
-					}
-				}
-			}
-		}
-
-		return nil
-	})
-
-	return kustomizations, err
-}
-
-func (v *FluxKustomizationValidator) isFluxKustomization(node *yaml.Node) bool {
-	if node.Kind != yaml.MappingNode {
-		return false
-	}
-
-	var kind, apiVersion string
-
-	for i := 0; i < len(node.Content); i += 2 {
-		key := node.Content[i]
-		value := node.Content[i+1]
-
-		if key.Value == "kind" && value.Value == "Kustomization" {
-			kind = value.Value
-		}
-
-		if key.Value == "apiVersion" && strings.HasPrefix(value.Value, "kustomize.toolkit.fluxcd.io/") {
-			apiVersion = value.Value
-		}
-	}
-
-	return kind == "Kustomization" && apiVersion != ""
-}
-
-func (v *FluxKustomizationValidator) extractKustomizationInfo(node *yaml.Node, filePath string) *FluxKustomization {
-	var name, path, source string
-
-	for i := 0; i < len(node.Content); i += 2 {
-		key := node.Content[i]
-		value := node.Content[i+1]
-
-		switch key.Value {
-		case "metadata":
-			if value.Kind == yaml.MappingNode {
-				for j := 0; j < len(value.Content); j += 2 {
-					if value.Content[j].Value == "name" {
-						name = value.Content[j+1].Value
-					}
-				}
-			}
-		case "spec":
-			if value.Kind == yaml.MappingNode {
-				for j := 0; j < len(value.Content); j += 2 {
-					switch value.Content[j].Value {
-					case "path":
-						path = value.Content[j+1].Value
-					case "sourceRef":
-						if value.Content[j+1].Kind == yaml.MappingNode {
-							for k := 0; k < len(value.Content[j+1].Content); k += 2 {
-								if value.Content[j+1].Content[k].Value == "name" {
-									source = value.Content[j+1].Content[k+1].Value
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if name == "" {
-		return nil
-	}
-
-	return &FluxKustomization{
-		File:   filePath,
-		Name:   name,
-		Path:   path,
-		Source: source,
-		Line:   node.Line,
-	}
-}
-
-func (v *FluxKustomizationValidator) validatePathReference(kustomization FluxKustomization) error {
-	if kustomization.Path == "" {
+func (v *FluxKustomizationValidator) validatePathReference(kustomization *parser.ParsedResource, ctx *context.ValidationContext) error {
+	// Extract path from the parsed resource
+	path, exists := kustomization.Content["spec"].(map[string]interface{})["path"]
+	if !exists || path == nil {
 		return fmt.Errorf("path is required")
 	}
 
+	pathStr, ok := path.(string)
+	if !ok {
+		return fmt.Errorf("path must be a string")
+	}
+
 	// Normalize and resolve path
-	fullPath, shouldProcess := ResolvePath(v.repoPath, kustomization.Path)
+	fullPath, shouldProcess := ResolvePath(ctx.RepoPath, pathStr)
 	if !shouldProcess {
-		return fmt.Errorf("unsupported path format: %s", kustomization.Path)
+		return fmt.Errorf("unsupported path format: %s", pathStr)
 	}
 
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return fmt.Errorf("path '%s' does not exist", kustomization.Path)
+		return fmt.Errorf("path '%s' does not exist", pathStr)
 	}
 
 	return nil
 }
 
-func (v *FluxKustomizationValidator) validateSourceReference(kustomization FluxKustomization) error {
-	if kustomization.Source == "" {
+func (v *FluxKustomizationValidator) validateSourceReference(kustomization *parser.ParsedResource, ctx *context.ValidationContext) error {
+	// Extract sourceRef from the parsed resource
+	spec, exists := kustomization.Content["spec"]
+	if !exists {
+		return fmt.Errorf("spec is required")
+	}
+
+	specMap, ok := spec.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("spec must be an object")
+	}
+
+	sourceRef, exists := specMap["sourceRef"]
+	if !exists || sourceRef == nil {
+		return fmt.Errorf("sourceRef is required")
+	}
+
+	sourceRefMap, ok := sourceRef.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("sourceRef must be an object")
+	}
+
+	sourceName, exists := sourceRefMap["name"]
+	if !exists || sourceName == nil {
 		return fmt.Errorf("sourceRef.name is required")
 	}
 
-	// This would need to check against Flux Source resources
-	// For now, we'll just validate that it's not empty
+	sourceNameStr, ok := sourceName.(string)
+	if !ok {
+		return fmt.Errorf("sourceRef.name must be a string")
+	}
+
+	if sourceNameStr == "" {
+		return fmt.Errorf("sourceRef.name cannot be empty")
+	}
+
+	// Check if the source exists in the graph
+	sources := ctx.Graph.GetFluxSources()
+	found := false
+	for _, source := range sources {
+		if source.Name == sourceNameStr {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("source '%s' not found in repository", sourceNameStr)
+	}
+
 	return nil
 }
