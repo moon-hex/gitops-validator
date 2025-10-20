@@ -3,6 +3,7 @@ package validators
 import (
 	"fmt"
 
+	"github.com/moon-hex/gitops-validator/internal/context"
 	"github.com/moon-hex/gitops-validator/internal/types"
 )
 
@@ -25,13 +26,14 @@ func (v *KubernetesKustomizationValidator) Name() string {
 	return "Kubernetes Kustomization Validator"
 }
 
-func (v *KubernetesKustomizationValidator) Validate() ([]types.ValidationResult, error) {
+// Validate implements the GraphValidator interface
+func (v *KubernetesKustomizationValidator) Validate(ctx *context.ValidationContext) ([]types.ValidationResult, error) {
 	var results []types.ValidationResult
 
-	// Run all specialized validators
+	// Run all specialized validators with context
 	validators := []struct {
 		name     string
-		validate func() ([]types.ValidationResult, error)
+		validate func(*context.ValidationContext) ([]types.ValidationResult, error)
 	}{
 		{v.resourceValidator.Name(), v.resourceValidator.Validate},
 		{v.patchValidator.Name(), v.patchValidator.Validate},
@@ -39,7 +41,7 @@ func (v *KubernetesKustomizationValidator) Validate() ([]types.ValidationResult,
 	}
 
 	for _, validator := range validators {
-		validatorResults, err := validator.validate()
+		validatorResults, err := validator.validate(ctx)
 		if err != nil {
 			// Add error as validation result instead of failing completely
 			results = append(results, types.ValidationResult{

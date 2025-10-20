@@ -1,5 +1,39 @@
 # Release Notes
 
+## Version 1.4.0 (2025-01-20) - Phase II: Graph-Based Validator Architecture
+
+### Major Architecture Refactoring
+- **Graph-Based Validator Architecture**: Complete refactoring of all validators to use the new `GraphValidator` interface
+  - All validators now use the parsed resource graph instead of individual file parsing
+  - Eliminated duplicate file walking and parsing across validators
+  - Improved performance by parsing resources once and reusing across all validators
+  - Enhanced maintainability with consistent validator interface
+
+### Validator Refactoring
+- **FluxKustomizationValidator**: Now uses parsed resource graph for Flux Kustomization validation
+- **KubernetesKustomizationValidator**: Refactored to use graph-based approach with specialized validators
+- **KustomizationVersionConsistencyValidator**: Simplified to use parsed resources instead of file walking
+- **OrphanedResourceValidator**: Leverages ValidationContext's orphaned resource detection
+- **DeprecatedAPIValidator**: Streamlined to use parsed resources from graph
+- **FluxPostBuildVariablesValidator**: Refactored to extract variables from parsed content
+
+### Technical Improvements
+- **ValidationContext**: Enhanced context provides centralized access to parsed resources and graph operations
+- **Resource Graph**: All validators now work with the unified resource graph
+- **Eliminated Code Duplication**: Removed redundant file parsing and walking logic across validators
+- **Improved Performance**: Single-pass parsing with multi-validator consumption
+- **Better Error Handling**: Consistent error handling across all graph-based validators
+
+### Developer Experience
+- **Unified Interface**: All validators now implement the same `GraphValidator` interface
+- **Easier Testing**: Validators can be tested with mock validation contexts
+- **Simplified Maintenance**: Single source of truth for resource parsing
+- **Enhanced Extensibility**: New validators can easily leverage the resource graph
+
+### Breaking Changes
+- **Validator Interface**: Legacy `ValidatorInterface` is deprecated in favor of `GraphValidator`
+- **Constructor Changes**: Some validator constructors have been simplified (removed config parameters where no longer needed)
+
 ## Version 1.3.0 (2025-01-20)
 
 ### Refactoring & Architecture Improvements

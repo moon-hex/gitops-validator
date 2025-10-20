@@ -89,36 +89,26 @@ func (v *Validator) Validate() (int, error) {
 		fmt.Printf("Found %d resources in %d files\n", len(graph.Resources), len(graph.Files))
 	}
 
-	// Create validation context (for future use)
-	_ = context.NewValidationContext(graph, v.config, v.repoPath, v.verbose)
+	// Create validation context
+	validationContext := context.NewValidationContext(graph, v.config, v.repoPath, v.verbose)
 
-	// For now, use the old validators until we refactor them
-	// TODO: Refactor validators to use the new GraphValidator interface
-
-	// Initialize validators
-	var deprecatedAPIValidator validators.ValidatorInterface
-	if v.yamlPath != "" {
-		deprecatedAPIValidator = validators.NewDeprecatedAPIValidatorWithYAML(v.repoPath, v.yamlPath)
-	} else {
-		deprecatedAPIValidator = validators.NewDeprecatedAPIValidatorWithConfig(v.repoPath, v.config)
-	}
-
-	validatorList := []validators.ValidatorInterface{
+	// Initialize graph-based validators
+	validatorList := []validators.GraphValidator{
 		validators.NewFluxKustomizationValidator(v.repoPath),
 		validators.NewKubernetesKustomizationValidator(v.repoPath),
 		validators.NewKustomizationVersionConsistencyValidator(v.repoPath),
-		validators.NewOrphanedResourceValidatorWithConfig(v.repoPath, v.config),
-		deprecatedAPIValidator,
+		validators.NewOrphanedResourceValidator(v.repoPath),
+		validators.NewDeprecatedAPIValidator(v.repoPath),
 		validators.NewFluxPostBuildVariablesValidator(v.repoPath),
 	}
 
-	// Run all validators
+	// Run all validators with context
 	for _, validator := range validatorList {
 		if v.verbose {
 			fmt.Printf("Running validator: %s\n", validator.Name())
 		}
 
-		results, err := validator.Validate()
+		results, err := validator.Validate(validationContext)
 		if err != nil {
 			return 1, fmt.Errorf("validator %s failed: %w", validator.Name(), err)
 		}
