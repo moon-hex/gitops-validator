@@ -8,6 +8,7 @@ This directory contains test cases for the gitops-validator, including intention
 
 - `flux-postbuild-test.yaml` - Examples of valid and invalid Flux postBuild variable names
 - `kustomization-version-consistency/` - Examples of version consistency checks
+- `patches-strategic-merge-file-support/` - Examples of patchesStrategicMerge with file object format support
 
 ## Usage
 
