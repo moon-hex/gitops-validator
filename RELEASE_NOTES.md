@@ -1,5 +1,28 @@
 # Release Notes
 
+## Version 1.3.0 (2025-01-20)
+
+### Refactoring & Architecture Improvements
+- **Modular Validator Architecture**: Refactored Kubernetes Kustomization validator into specialized, composable validators
+  - Split monolithic validator into focused components: Resource, Patch, and Strategic Merge validators
+  - Created reusable validation rules that can be easily composed and tested
+  - Extracted shared utilities for kustomization parsing and file operations
+  - Improved maintainability and testability of validation logic
+
+### Technical Improvements
+- **Shared Utilities**: Created `KustomizationParser` and `KustomizationFile` utilities to eliminate code duplication
+- **Validation Rules**: Implemented composable validation rules with `ValidationRuleSet` for better organization
+- **Specialized Validators**: 
+  - `KustomizationResourceValidator`: Handles resource reference validation
+  - `KustomizationPatchValidator`: Handles patch reference validation  
+  - `KustomizationStrategicMergeValidator`: Handles strategic merge patch validation
+- **Backward Compatibility**: Maintained existing API and functionality while improving internal structure
+
+### Developer Experience
+- **Better Testability**: Individual components can now be tested in isolation
+- **Easier Extension**: Adding new validation rules is now straightforward
+- **Cleaner Code**: Single responsibility principle applied throughout validation logic
+
 ## Version 1.2.0 (2025-10-08)
 
 ### New Features

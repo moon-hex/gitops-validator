@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: test-kustomization
+resources:
+  - deployment.yaml
+patchesStrategicMerge:
+  # Multiple patches targeting the same resource (allowed)
+  - patch1.yaml
+  - patch2.yaml
+  - ./patches/patch3.yaml
+  - ./patches/patch4.yaml
