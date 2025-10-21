@@ -17,10 +17,13 @@ var (
 	chartFormat     string
 	chartOutput     string
 	chartEntryPoint string
+	parallel        bool
+	pipeline        string
+	aggregation     string
 )
 
 var (
-	version = "1.4.0"
+	version = "1.5.0"
 	commit  = "main"
 	date    = "2025-01-20"
 )
@@ -56,6 +59,11 @@ Examples:
   gitops-validator --path . --chart mermaid --chart-output deps.md  # Save chart to file
   gitops-validator --path . --output-format markdown     # GitHub-friendly table output
   gitops-validator --path . --output-format json         # JSON for machine consumption
+  gitops-validator --path . --parallel                   # Run validators in parallel (Phase III)
+  gitops-validator --path . --pipeline fast              # Use fast pipeline for CI/CD
+  gitops-validator --path . --pipeline comprehensive     # Use comprehensive pipeline
+  gitops-validator --path . --aggregation errors-only    # Show only errors with stats
+  gitops-validator --path . --aggregation summary        # Show summary with top 50 issues
 
 Version: ` + version + `
 Commit: ` + commit + `
@@ -73,6 +81,9 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&chartFormat, "chart", "", "generate dependency chart (mermaid, tree, json)")
 	rootCmd.PersistentFlags().StringVar(&chartOutput, "chart-output", "", "output file for dependency chart (default: stdout)")
 	rootCmd.PersistentFlags().StringVar(&chartEntryPoint, "chart-entrypoint", "", "generate chart for specific entry point only")
+	rootCmd.PersistentFlags().BoolVar(&parallel, "parallel", false, "run validators in parallel for better performance")
+	rootCmd.PersistentFlags().StringVar(&pipeline, "pipeline", "", "validation pipeline: default, fast, comprehensive")
+	rootCmd.PersistentFlags().StringVar(&aggregation, "aggregation", "", "result aggregation: errors-only, warnings-only, summary, grouped")
 
 	// Exit code configuration flags
 	rootCmd.PersistentFlags().Bool("fail-on-errors", true, "exit with code 1 on errors (default: true)")
@@ -109,6 +120,9 @@ func init() {
 	viper.BindPFlag("fail-on-info", rootCmd.PersistentFlags().Lookup("fail-on-info"))
 	viper.BindPFlag("no-fail-on-info", rootCmd.PersistentFlags().Lookup("no-fail-on-info"))
 	viper.BindPFlag("output-format", rootCmd.PersistentFlags().Lookup("output-format"))
+	viper.BindPFlag("parallel", rootCmd.PersistentFlags().Lookup("parallel"))
+	viper.BindPFlag("pipeline", rootCmd.PersistentFlags().Lookup("pipeline"))
+	viper.BindPFlag("aggregation", rootCmd.PersistentFlags().Lookup("aggregation"))
 }
 
 func initConfig() {
@@ -170,8 +184,25 @@ func runValidation(cmd *cobra.Command, args []string) error {
 	failOnErrors := viper.GetBool("fail-on-errors") && !viper.GetBool("no-fail-on-errors")
 	failOnWarnings := viper.GetBool("fail-on-warnings") && !viper.GetBool("no-fail-on-warnings")
 	failOnInfo := viper.GetBool("fail-on-info") && !viper.GetBool("no-fail-on-info")
+	parallel := viper.GetBool("parallel")
 
+	// Create validator with parallel execution support
 	v := validator.NewValidatorWithExitCodes(path, verbose, yamlPath, failOnErrors, failOnWarnings, failOnInfo)
+	v.SetParallel(parallel)
+
+	// Set pipeline if requested
+	pipelineName := viper.GetString("pipeline")
+	if pipelineName != "" {
+		if err := v.SetPipelineByName(pipelineName); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to set pipeline: %v\n", err)
+		}
+	}
+
+	// Set aggregation if requested
+	aggregationPreset := viper.GetString("aggregation")
+	if aggregationPreset != "" {
+		v.SetAggregationPreset(aggregationPreset)
+	}
 	if outputFormat != "" {
 		v.SetOutputFormat(outputFormat)
 	}
