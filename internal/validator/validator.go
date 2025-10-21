@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/moon-hex/gitops-validator/internal/config"
 	"github.com/moon-hex/gitops-validator/internal/context"
@@ -24,6 +25,14 @@ type Validator struct {
 	results  []types.ValidationResult
 	// new: optional output format ("", "markdown", "json")
 	outputFormat string
+	// Phase III: parallel validation
+	parallel bool
+	// Phase III: validation pipelines
+	pipeline    *validators.ValidationPipeline
+	usePipeline bool
+	// Phase III: result aggregation
+	aggregationOptions *types.AggregationOptions
+	useAggregation     bool
 }
 
 func NewValidator(repoPath string, verbose bool, yamlPath string) *Validator {
@@ -42,13 +51,95 @@ func NewValidator(repoPath string, verbose bool, yamlPath string) *Validator {
 	}
 
 	return &Validator{
-		repoPath:     repoPath,
-		verbose:      verbose,
-		yamlPath:     yamlPath,
-		config:       cfg,
-		parser:       parser.NewResourceParser(repoPath, cfg),
-		results:      make([]types.ValidationResult, 0),
-		outputFormat: "",
+		repoPath:           repoPath,
+		verbose:            verbose,
+		yamlPath:           yamlPath,
+		config:             cfg,
+		parser:             parser.NewResourceParser(repoPath, cfg),
+		results:            make([]types.ValidationResult, 0),
+		outputFormat:       "",
+		parallel:           false, // Default to sequential for backward compatibility
+		pipeline:           nil,   // Pipeline disabled by default
+		usePipeline:        false,
+		aggregationOptions: nil, // Aggregation disabled by default
+		useAggregation:     false,
+	}
+}
+
+// NewValidatorWithParallel creates a validator with parallel execution enabled
+func NewValidatorWithParallel(repoPath string, verbose bool, yamlPath string, parallel bool) *Validator {
+	v := NewValidator(repoPath, verbose, yamlPath)
+	v.parallel = parallel
+	return v
+}
+
+// SetParallel enables or disables parallel validation
+func (v *Validator) SetParallel(parallel bool) {
+	v.parallel = parallel
+}
+
+// SetPipeline sets the validation pipeline
+func (v *Validator) SetPipeline(pipeline *validators.ValidationPipeline) {
+	v.pipeline = pipeline
+	v.usePipeline = pipeline != nil
+}
+
+// SetPipelineByName sets a predefined pipeline by name
+func (v *Validator) SetPipelineByName(pipelineName string) error {
+	switch pipelineName {
+	case "default":
+		v.SetPipeline(validators.GetDefaultPipeline())
+	case "fast":
+		v.SetPipeline(validators.GetFastPipeline())
+	case "comprehensive":
+		v.SetPipeline(validators.GetComprehensivePipeline())
+	default:
+		return fmt.Errorf("unknown pipeline: %s", pipelineName)
+	}
+	return nil
+}
+
+// SetAggregationOptions sets the result aggregation options
+func (v *Validator) SetAggregationOptions(options *types.AggregationOptions) {
+	v.aggregationOptions = options
+	v.useAggregation = options != nil
+}
+
+// SetAggregationPreset sets a predefined aggregation preset
+func (v *Validator) SetAggregationPreset(preset string) {
+	switch preset {
+	case "errors-only":
+		v.SetAggregationOptions(&types.AggregationOptions{
+			ShowOnlyErrors: true,
+			SortBy:         "severity",
+			SortOrder:      "desc",
+			IncludeStats:   true,
+		})
+	case "warnings-only":
+		v.SetAggregationOptions(&types.AggregationOptions{
+			ShowOnlyWarnings: true,
+			SortBy:           "type",
+			SortOrder:        "asc",
+			IncludeStats:     true,
+		})
+	case "summary":
+		v.SetAggregationOptions(&types.AggregationOptions{
+			IncludeStats: true,
+			Limit:        50, // Show top 50 results
+			SortBy:       "severity",
+			SortOrder:    "desc",
+		})
+	case "grouped":
+		v.SetAggregationOptions(&types.AggregationOptions{
+			GroupBy:      "type",
+			IncludeStats: true,
+			SortBy:       "type",
+			SortOrder:    "asc",
+		})
+	default:
+		// No aggregation
+		v.useAggregation = false
+		v.aggregationOptions = nil
 	}
 }
 
@@ -89,31 +180,43 @@ func (v *Validator) Validate() (int, error) {
 		fmt.Printf("Found %d resources in %d files\n", len(graph.Resources), len(graph.Files))
 	}
 
+	// Build fast lookup index for large repositories (Phase III)
+	if v.verbose {
+		fmt.Printf("Building resource index...\n")
+	}
+	if err := graph.BuildIndex(); err != nil {
+		return 1, fmt.Errorf("failed to build resource index: %w", err)
+	}
+
+	if v.verbose {
+		stats := graph.Index.GetIndexStats()
+		fmt.Printf("Index built: %d resources, %d Flux Kustomizations, %d Kubernetes Kustomizations\n",
+			stats["total_resources"], stats["flux_kustomizations"], stats["kubernetes_kustomizations"])
+	}
+
 	// Create validation context
 	validationContext := context.NewValidationContext(graph, v.config, v.repoPath, v.verbose)
 
-	// Initialize graph-based validators
-	validatorList := []validators.GraphValidator{
-		validators.NewFluxKustomizationValidator(v.repoPath),
-		validators.NewKubernetesKustomizationValidator(v.repoPath),
-		validators.NewKustomizationVersionConsistencyValidator(v.repoPath),
-		validators.NewOrphanedResourceValidator(v.repoPath),
-		validators.NewDeprecatedAPIValidator(v.repoPath),
-		validators.NewFluxPostBuildVariablesValidator(v.repoPath),
-	}
-
-	// Run all validators with context
-	for _, validator := range validatorList {
-		if v.verbose {
-			fmt.Printf("Running validator: %s\n", validator.Name())
+	// Run validation using pipeline or traditional approach
+	if v.usePipeline {
+		v.runValidationWithPipeline(validationContext)
+	} else {
+		// Initialize graph-based validators
+		validatorList := []validators.GraphValidator{
+			validators.NewFluxKustomizationValidator(v.repoPath),
+			validators.NewKubernetesKustomizationValidator(v.repoPath),
+			validators.NewKustomizationVersionConsistencyValidator(v.repoPath),
+			validators.NewOrphanedResourceValidator(v.repoPath),
+			validators.NewDeprecatedAPIValidator(v.repoPath),
+			validators.NewFluxPostBuildVariablesValidator(v.repoPath),
 		}
 
-		results, err := validator.Validate(validationContext)
-		if err != nil {
-			return 1, fmt.Errorf("validator %s failed: %w", validator.Name(), err)
+		// Run all validators with context (parallel or sequential)
+		if v.parallel {
+			v.runValidatorsParallel(validatorList, validationContext)
+		} else {
+			v.runValidatorsSequential(validatorList, validationContext)
 		}
-
-		v.results = append(v.results, results...)
 	}
 
 	// Print results
@@ -147,6 +250,135 @@ func (v *Validator) Validate() (int, error) {
 	}
 
 	return 0, nil // Exit code 0 for success, no error returned
+}
+
+// runValidatorsSequential runs validators sequentially (legacy behavior)
+func (v *Validator) runValidatorsSequential(validatorList []validators.GraphValidator, validationContext *context.ValidationContext) {
+	for _, validator := range validatorList {
+		if v.verbose {
+			fmt.Printf("Running validator: %s\n", validator.Name())
+		}
+
+		results, err := validator.Validate(validationContext)
+		if err != nil {
+			// Add error as validation result instead of failing completely
+			v.results = append(v.results, types.ValidationResult{
+				Type:     "validator-error",
+				Severity: "error",
+				Message:  fmt.Sprintf("Validator %s failed: %s", validator.Name(), err.Error()),
+			})
+			continue
+		}
+
+		v.results = append(v.results, results...)
+	}
+}
+
+// runValidatorsParallel runs validators in parallel for better performance
+func (v *Validator) runValidatorsParallel(validatorList []validators.GraphValidator, validationContext *context.ValidationContext) {
+	if v.verbose {
+		fmt.Printf("Running %d validators in parallel...\n", len(validatorList))
+	}
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	// Create a channel to collect results
+	resultChan := make(chan []types.ValidationResult, len(validatorList))
+	errorChan := make(chan error, len(validatorList))
+
+	// Start all validators in parallel
+	for _, validator := range validatorList {
+		wg.Add(1)
+		go func(validator validators.GraphValidator) {
+			defer wg.Done()
+
+			if v.verbose {
+				mu.Lock()
+				fmt.Printf("Starting validator: %s\n", validator.Name())
+				mu.Unlock()
+			}
+
+			results, err := validator.Validate(validationContext)
+			if err != nil {
+				errorChan <- fmt.Errorf("validator %s failed: %w", validator.Name(), err)
+				return
+			}
+
+			resultChan <- results
+		}(validator)
+	}
+
+	// Wait for all validators to complete
+	go func() {
+		wg.Wait()
+		close(resultChan)
+		close(errorChan)
+	}()
+
+	// Collect results
+	for {
+		select {
+		case results, ok := <-resultChan:
+			if !ok {
+				resultChan = nil
+			} else {
+				v.results = append(v.results, results...)
+			}
+		case err, ok := <-errorChan:
+			if !ok {
+				errorChan = nil
+			} else {
+				// Add error as validation result instead of failing completely
+				v.results = append(v.results, types.ValidationResult{
+					Type:     "validator-error",
+					Severity: "error",
+					Message:  err.Error(),
+				})
+			}
+		}
+
+		// Exit when both channels are closed
+		if resultChan == nil && errorChan == nil {
+			break
+		}
+	}
+
+	if v.verbose {
+		fmt.Printf("Parallel validation completed. Found %d total results.\n", len(v.results))
+	}
+}
+
+// runValidationWithPipeline runs validation using a pipeline
+func (v *Validator) runValidationWithPipeline(validationContext *context.ValidationContext) {
+	if v.verbose {
+		fmt.Printf("Running validation with pipeline: %s\n", v.pipeline.Name)
+	}
+
+	// Create validator registry
+	validatorRegistry := map[string]validators.GraphValidator{
+		"flux-kustomization":                validators.NewFluxKustomizationValidator(v.repoPath),
+		"kubernetes-kustomization":          validators.NewKubernetesKustomizationValidator(v.repoPath),
+		"kustomization-version-consistency": validators.NewKustomizationVersionConsistencyValidator(v.repoPath),
+		"orphaned-resource":                 validators.NewOrphanedResourceValidator(v.repoPath),
+		"deprecated-api":                    validators.NewDeprecatedAPIValidator(v.repoPath),
+		"flux-postbuild-variables":          validators.NewFluxPostBuildVariablesValidator(v.repoPath),
+	}
+
+	// Create pipeline executor
+	executor := validators.NewPipelineExecutor(validatorRegistry, v.verbose)
+
+	// Execute pipeline
+	results, err := executor.ExecutePipeline(v.pipeline, validationContext)
+	if err != nil {
+		v.results = append(v.results, types.ValidationResult{
+			Type:     "pipeline-error",
+			Severity: "error",
+			Message:  fmt.Sprintf("Pipeline execution failed: %s", err.Error()),
+		})
+	} else {
+		v.results = append(v.results, results...)
+	}
 }
 
 // GenerateChart generates a dependency chart in the specified format
@@ -261,10 +493,26 @@ func (v *Validator) printResults() {
 		return
 	}
 
+	// Apply result aggregation if enabled
+	var resultsToPrint []types.ValidationResult
+	if v.useAggregation && v.aggregationOptions != nil {
+		aggregator := types.NewResultAggregator(v.results)
+		aggregated := aggregator.Aggregate(*v.aggregationOptions)
+		resultsToPrint = aggregated.Results
+
+		// Print summary if requested
+		if v.aggregationOptions.IncludeStats {
+			fmt.Println(aggregated.GetSummary())
+			fmt.Println()
+		}
+	} else {
+		resultsToPrint = v.results
+	}
+
 	// Default human-readable output
 	if v.outputFormat == "" {
-		fmt.Printf("\n📋 Validation Results (%d issues found):\n\n", len(v.results))
-		for _, result := range v.results {
+		fmt.Printf("\n📋 Validation Results (%d issues found):\n\n", len(resultsToPrint))
+		for _, result := range resultsToPrint {
 			icon := getSeverityIcon(result.Severity)
 			fmt.Printf("%s [%s] %s", icon, strings.ToUpper(result.Severity), result.Message)
 			if result.File != "" {
@@ -286,10 +534,10 @@ func (v *Validator) printResults() {
 	if v.outputFormat == "markdown" || v.outputFormat == "md" {
 		fmt.Println("## GitOps Validator Results")
 		fmt.Println()
-		fmt.Printf("%d issues found\n\n", len(v.results))
+		fmt.Printf("%d issues found\n\n", len(resultsToPrint))
 		fmt.Println("| Severity | Type | Message | File | Line | Resource |")
 		fmt.Println("|---|---|---|---|---:|---|")
-		for _, r := range v.results {
+		for _, r := range resultsToPrint {
 			msg := strings.ReplaceAll(r.Message, "|", "\\|")
 			fmt.Printf("| %s | %s | %s | %s | %d | %s |\n",
 				strings.ToUpper(r.Severity), r.Type, msg, r.File, r.Line, r.Resource)
@@ -299,7 +547,7 @@ func (v *Validator) printResults() {
 
 	// JSON output
 	if v.outputFormat == "json" {
-		b, err := json.MarshalIndent(v.results, "", "  ")
+		b, err := json.MarshalIndent(resultsToPrint, "", "  ")
 		if err != nil {
 			fmt.Printf("Error formatting JSON output: %v\n", err)
 			return

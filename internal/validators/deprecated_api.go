@@ -1,11 +1,10 @@
 package validators
 
 import (
-	"fmt"
-
 	"github.com/moon-hex/gitops-validator/internal/config"
 	"github.com/moon-hex/gitops-validator/internal/context"
 	"github.com/moon-hex/gitops-validator/internal/types"
+	"github.com/moon-hex/gitops-validator/internal/validators/checks"
 )
 
 type DeprecatedAPIValidator struct {
@@ -30,18 +29,9 @@ func (v *DeprecatedAPIValidator) Validate(ctx *context.ValidationContext) ([]typ
 	allResources := ctx.Graph.Resources
 
 	for _, resource := range allResources {
-		// Check if the API version is deprecated
-		deprecatedInfo := v.checkDeprecatedAPI(resource.APIVersion, ctx.Config)
-		if deprecatedInfo != nil {
-			results = append(results, types.ValidationResult{
-				Type:     "deprecated-api",
-				Severity: deprecatedInfo.Severity,
-				Message:  fmt.Sprintf("'%s' API for '%s' '%s' - %s", resource.APIVersion, resource.Kind, resource.Name, deprecatedInfo.DeprecationInfo),
-				File:     resource.File,
-				Line:     resource.Line,
-				Resource: fmt.Sprintf("%s/%s", resource.APIVersion, resource.Kind),
-			})
-		}
+		// Use the focused deprecated API check
+		checkResults := checks.DeprecatedAPICheck(resource, ctx.Config)
+		results = append(results, checkResults...)
 	}
 
 	return results, nil

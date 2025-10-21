@@ -13,6 +13,8 @@ type ResourceGraph struct {
 	ByKind       map[string][]*ParsedResource       // Key: kind
 	ByAPIVersion map[string][]*ParsedResource       // Key: apiVersion
 	ByType       map[ResourceType][]*ParsedResource // Key: resource type
+	// Phase III: Fast lookup index
+	Index *ResourceIndex
 }
 
 // NewResourceGraph creates a new ResourceGraph
@@ -23,6 +25,7 @@ func NewResourceGraph() *ResourceGraph {
 		ByKind:       make(map[string][]*ParsedResource),
 		ByAPIVersion: make(map[string][]*ParsedResource),
 		ByType:       make(map[ResourceType][]*ParsedResource),
+		Index:        NewResourceIndex(),
 	}
 }
 
@@ -233,6 +236,17 @@ func (g *ResourceGraph) ValidatePathReference(path string, isRelative bool, sour
 	}
 
 	return nil
+}
+
+// BuildIndex builds the fast lookup index for the graph
+func (g *ResourceGraph) BuildIndex() error {
+	// Convert map to slice for indexing
+	var resources []*ParsedResource
+	for _, resource := range g.Resources {
+		resources = append(resources, resource)
+	}
+
+	return g.Index.BuildIndex(resources)
 }
 
 // ValidateResourceReference checks if a resource reference exists
