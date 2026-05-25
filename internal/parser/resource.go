@@ -67,6 +67,8 @@ func ClassifyResource(resource *ParsedResource) ResourceType {
 	switch {
 	case resource.Kind == "Kustomization" && strings.HasPrefix(resource.APIVersion, "kustomize.toolkit.fluxcd.io/"):
 		return ResourceTypeFluxKustomization
+	case resource.Kind == "Kustomization" && strings.HasPrefix(resource.APIVersion, "kustomize.config.k8s.io/"):
+		return ResourceTypeKubernetesKustomization
 	case resource.Kind == "HelmRelease" && strings.HasPrefix(resource.APIVersion, "helm.toolkit.fluxcd.io/"):
 		return ResourceTypeHelmRelease
 	case resource.Kind == "GitRepository" && strings.HasPrefix(resource.APIVersion, "source.toolkit.fluxcd.io/"):

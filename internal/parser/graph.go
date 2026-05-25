@@ -80,11 +80,12 @@ func (g *ResourceGraph) FindTargetResource(ref ResourceReference, sourceResource
 	switch ref.ReferenceType {
 	case string(ReferenceTypePath):
 		return g.findResourceByPath(ref.Path, ref.IsRelative, sourceResource.File, repoPath)
+	case string(ReferenceTypeResource):
+		// kustomization resources: entries are relative to the kustomization file
+		return g.findResourceByPath(ref.Path, true, sourceResource.File, repoPath)
 	case string(ReferenceTypeSourceRef):
 		return g.findResourceByName(ref.Path)
 	case string(ReferenceTypeChart):
-		// For Helm charts, we might not have the chart as a resource
-		// This could be extended to check HelmRepository resources
 		return nil
 	default:
 		return nil
@@ -103,14 +104,19 @@ func (g *ResourceGraph) findResourceByPath(path string, isRelative bool, sourceF
 		fullPath = filepath.Join(repoPath, path)
 	}
 
-	// Look for resources in this file
+	// Look for resources at the exact path
 	if resources, exists := g.Files[fullPath]; exists {
-		// If it's a kustomization file, return the first resource (should be the kustomization)
-		if IsKustomizationFile(fullPath) && len(resources) > 0 {
+		if len(resources) > 0 {
 			return resources[0]
 		}
-		// For other files, return the first resource
-		if len(resources) > 0 {
+	}
+
+	// If not found as a file, treat as a directory reference and look for
+	// kustomization.yaml / kustomization.yml inside it. This handles both
+	// kustomization resources: directory entries and Flux spec.path directory values.
+	for _, kFile := range []string{"kustomization.yaml", "kustomization.yml"} {
+		kPath := filepath.Join(fullPath, kFile)
+		if resources, exists := g.Files[kPath]; exists && len(resources) > 0 {
 			return resources[0]
 		}
 	}
