@@ -143,8 +143,14 @@ func (p *ResourceParser) parseResourceNode(node *yaml.Node, filePath string) *Pa
 	}
 
 	// Skip if not a valid Kubernetes resource
-	if apiVersion == "" || kind == "" || name == "" {
+	if apiVersion == "" || kind == "" {
 		return nil
+	}
+	// kustomize.config.k8s.io Kustomization files never carry metadata.name —
+	// the file path is their identity. Use a path-derived synthetic name so
+	// they are registered in g.Files and reachable by graph traversal.
+	if name == "" {
+		name = filePath
 	}
 
 	resource := &ParsedResource{
