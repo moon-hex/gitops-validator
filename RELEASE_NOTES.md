@@ -1,5 +1,47 @@
 # Release Notes
 
+## Version 1.5.1 (2026-05-26) - Bug Fix: False Positives in Resource Resolution
+
+### Bug Fixes
+- **Fixed false positives in Kustomization resource path resolution**: The resource graph now correctly resolves directory references by looking for `kustomization.yaml` / `kustomization.yml` inside the target directory. Previously, directory-style resource entries (e.g. `resources: [./some-dir]`) were not matched and caused spurious validation errors.
+- **Fixed `ReferenceTypeResource` handling**: Kustomization `resources:` entries are now treated as relative paths (relative to the kustomization file), matching actual kustomize behaviour. Previously they fell through to the default unresolved case.
+- **Fixed `ResourceTypeKubernetesKustomization` classification**: Resources with `apiVersion: kustomize.config.k8s.io/...` and `kind: Kustomization` are now correctly classified as `ResourceTypeKubernetesKustomization` instead of being left unclassified.
+
+### Upgrade
+Binary and bundle available on Releases. No configuration changes required — this is a pure bug-fix release reducing false-positive validation errors.
+
+---
+
+## Version 1.5.0 (2025-10-21) - Phase III: Clean Validator Structure
+
+### Major Refactoring
+- **Clean separation of validation checks from common code**: Reorganized `internal/validators/` into a clear three-layer structure:
+  - `common/` — shared base validator and reusable check utilities
+  - `checks/` — individual, single-purpose validation check functions (one file per validator domain)
+  - Top-level validators now act as thin orchestrators, delegating to focused check functions
+
+### New Infrastructure
+- **Resource Indexing** (`internal/parser/index.go`): Fast lookup structures for large repositories
+- **Validation Pipelines** (`internal/validators/pipeline.go`): Configurable, ordered validation execution
+- **Result Aggregation** (`internal/types/aggregation.go`): Advanced filtering and grouping of validation results
+- **Parallel Validation**: Validators can now run concurrently for better performance on large repos
+
+### Developer Experience
+- Individual checks can be unit-tested in isolation without a full validation context
+- New checks can be added without modifying existing orchestrator code
+- Each file has a single, clear responsibility
+
+### Documentation
+- Added `docs/VALIDATOR_STRUCTURE.md` with architecture overview and guide for adding new checks
+
+### Breaking Changes
+- None — all existing validation behaviour and CLI flags are preserved
+
+### Upgrade
+Binary and bundle available on Releases. No configuration changes required.
+
+---
+
 ## Version 1.4.0 (2025-01-20) - Phase II: Graph-Based Validator Architecture
 
 ### Major Architecture Refactoring
