@@ -1,5 +1,35 @@
 # Release Notes
 
+## Version 1.6.0 (upcoming) - Bug Fixes: Unnamed Kustomization Files & External SourceRef Paths
+
+### Bug Fixes
+
+#### Bug 1 — Parser drops unnamed Kubernetes kustomization.yaml files (Orphaned Resource Validator)
+
+**Root cause:** `parser.go` `parseResourceNode` required `metadata.name` to accept a resource (`apiVersion == "" || kind == "" || name == ""`). Kubernetes `kustomization.yaml` files (`apiVersion: kustomize.config.k8s.io/…`, `kind: Kustomization`) never carry `metadata.name` — the file path is their identity. Every Kubernetes kustomization.yaml was silently dropped from the resource graph, breaking dependency traversal and causing all files reachable only through those kustomization.yaml files to be reported as orphaned.
+
+**Telltale symptom:** Index line `0 Kubernetes Kustomizations` despite many `kustomization.yaml` files in the repo.
+
+**Fix (`internal/parser/parser.go`):** The `name == ""` guard is removed from the skip condition. When `apiVersion` and `kind` are present but `name` is empty, the file path is used as a synthetic name. The resource is correctly registered in `g.Files` and reachable by `findResourceByPath`.
+
+**Impact:** Eliminates false-positive orphaned-resource warnings in repositories that use shared `common-resources/` patterns or unnamed intermediate kustomization.yaml files.
+
+#### Bug 2 — Flux `spec.path` validated against local filesystem for external `sourceRef` (Flux Kustomization Validator)
+
+**Root cause:** `FluxKustomizationPathCheck` always resolved `spec.path` against the local repo root. In Flux, `spec.path` is relative to the **source** repository named in `sourceRef`. When `sourceRef` points to an external `GitRepository` with a remote URL, the path does not exist locally and the check always fails.
+
+**Fix (`internal/validators/checks/flux_kustomization_checks.go`):** Added `isExternalSourceRef` helper. Before the filesystem check, the validator now:
+1. Reads `spec.sourceRef.kind` — proceeds only for `GitRepository` / `OCIRepository`
+2. Looks up the referenced source resource in the graph
+3. If the source has a remote `spec.url` (`https://`, `http://`, `ssh://`, `git@`, `git://`), or if the source cannot be found locally, path validation is skipped
+
+**Impact:** Eliminates false-positive errors for Flux Kustomizations that deploy from external application repositories.
+
+### Upgrade
+Binary and bundle available on Releases. No configuration changes required — this is a pure bug-fix release.
+
+---
+
 ## Version 1.5.1 (2026-05-26) - Bug Fix: False Positives in Resource Resolution
 
 ### Bug Fixes
