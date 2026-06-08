@@ -63,7 +63,9 @@ func isExternalSourceRef(kustomization *parser.ParsedResource, ctx *context.Vali
 		return false
 	}
 
-	source := ctx.Graph.GetResource(sourceRefName)
+	// Look up by kind+name to avoid matching a same-named Namespace or other
+	// cluster-scoped resource whose key collides in the Resources map.
+	source := findSourceByKindAndName(ctx, sourceRefKind, sourceRefName)
 	if source == nil {
 		// Source not found locally — likely defined in another repo. Be conservative
 		// and skip path validation to avoid false positives.
@@ -80,6 +82,19 @@ func isExternalSourceRef(kustomization *parser.ParsedResource, ctx *context.Vali
 		strings.HasPrefix(url, "ssh://") ||
 		strings.HasPrefix(url, "git@") ||
 		strings.HasPrefix(url, "git://")
+}
+
+// findSourceByKindAndName returns the first resource matching both kind and name.
+// Using GetResource(name) alone can return a wrong resource when an unrelated
+// cluster-scoped resource (e.g. a Namespace) shares the same name as the
+// GitRepository/OCIRepository being looked up.
+func findSourceByKindAndName(ctx *context.ValidationContext, kind, name string) *parser.ParsedResource {
+	for _, r := range ctx.Graph.GetResourcesByKind(kind) {
+		if r.Name == name {
+			return r
+		}
+	}
+	return nil
 }
 
 // FluxKustomizationSourceCheck validates source references in Flux Kustomizations
