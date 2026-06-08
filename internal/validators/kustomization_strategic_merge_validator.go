@@ -1,6 +1,8 @@
 package validators
 
 import (
+	"path/filepath"
+
 	"github.com/moon-hex/gitops-validator/internal/context"
 	"github.com/moon-hex/gitops-validator/internal/types"
 )
@@ -38,6 +40,7 @@ func (v *KustomizationStrategicMergeValidator) Validate(ctx *context.ValidationC
 		kustomizationFile := &KustomizationFile{
 			Path:    kustomization.File,
 			Content: kustomization.Content,
+			BaseDir: filepath.Dir(kustomization.File),
 		}
 
 		// Run validation rules

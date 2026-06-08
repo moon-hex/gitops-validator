@@ -1,5 +1,30 @@
 # Release Notes
 
+## Version 1.7.0 (upcoming) - Bug Fixes: External SourceRef Name Collision & Missing BaseDir in Kustomization Validators
+
+### Bug Fixes
+
+#### Bug 1 — External `sourceRef` lookup hits wrong resource due to name collision (Flux Kustomization Validator)
+
+**Root cause:** `isExternalSourceRef` called `ctx.Graph.GetResource(sourceRefName)`, which looks up resources by the map key `"<namespace>/<name>"` or `"<name>"`. A namespaced `GitRepository` (e.g. `namespace: papla, name: papla`) has key `"papla/papla"`, but a `Namespace` resource also named `papla` has key `"papla"`. `GetResource("papla")` returned the `Namespace` instead of the `GitRepository`. The `Namespace` has no `spec.url`, so `isExternalSourceRef` returned `false` and path validation ran against paths that only exist in the remote repo.
+
+**Fix (`internal/validators/checks/flux_kustomization_checks.go`):** Replaced `GetResource(sourceRefName)` with a new `findSourceByKindAndName` helper that searches only among resources of the expected kind (`GitRepository` / `OCIRepository`), eliminating any collision with same-named cluster-scoped resources.
+
+**Impact:** Eliminates false-positive errors when a Flux Kustomization's external `GitRepository` shares its name with a `Namespace` or other cluster-scoped resource in the same repo.
+
+#### Bug 2 — Missing `BaseDir` in kustomization validators causes all relative path checks to fail (Kustomization Validators)
+
+**Root cause:** `KustomizationResourceValidator`, `KustomizationPatchValidator`, and `KustomizationStrategicMergeValidator` each constructed a `KustomizationFile` struct without setting `BaseDir`. `ValidateFileExists` resolves relative paths against `BaseDir`; when it is empty the path resolves against the process working directory instead of the kustomization file's own directory, causing every relative resource/patch reference to appear missing.
+
+**Fix (`internal/validators/kustomization_resource_validator.go`, `kustomization_patch_validator.go`, `kustomization_strategic_merge_validator.go`):** Added `BaseDir: filepath.Dir(kustomization.File)` to the `KustomizationFile` struct literal in each validator's `Validate` method.
+
+**Impact:** Eliminates false-positive errors for all relative path references in `resources:`, `patches:`, and `patchesStrategicMerge:` sections of Kubernetes kustomization files.
+
+### Upgrade
+Binary and bundle available on Releases. No configuration changes required — this is a pure bug-fix release.
+
+---
+
 ## Version 1.6.0 (upcoming) - Bug Fixes: Unnamed Kustomization Files & External SourceRef Paths
 
 ### Bug Fixes
