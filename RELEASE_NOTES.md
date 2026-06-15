@@ -20,6 +20,14 @@
 
 **Impact:** Eliminates false-positive errors for all relative path references in `resources:`, `patches:`, and `patchesStrategicMerge:` sections of Kubernetes kustomization files.
 
+#### Bug 3 — `flagger.app/v1beta1` incorrectly flagged as deprecated (Deprecated API Validator)
+
+**Root cause:** The built-in deprecated-API list included `flagger.app/v1beta1` with a WARNING-level entry. `v1beta1` is the current and only stable Flagger API — there is no `v1` release yet. The entry produced a false-positive warning on every `AlertProvider`, `Canary`, or other Flagger resource in any repo.
+
+**Fix (`data/gitops-validator.yaml`):** Removed `flagger.app/v1beta1` from the deprecated-API list. The `flagger.app/v1alpha3` entry is kept (it is genuinely superseded by `v1beta1`) and its `deprecation_info` was updated to reflect the correct migration target. A comment marks where to restore a `v1beta1` entry once Flagger publishes a `v1` API.
+
+**Impact:** Eliminates false-positive deprecation warnings on all Flagger resources using the current `v1beta1` API.
+
 ### Upgrade
 Binary and bundle available on Releases. No configuration changes required — this is a pure bug-fix release.
 

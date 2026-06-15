@@ -160,13 +160,12 @@ gitops-validator:
         operator_category: "external-secrets"
       # Flagger APIs
       - api_version: "flagger.app/v1alpha3"
-        deprecation_info: "Deprecated; exact removal version unknown (pending official confirmation)"
+        deprecation_info: "Superseded by flagger.app/v1beta1"
         severity: "warning"
         operator_category: "flagger"
-      - api_version: "flagger.app/v1beta1"
-        deprecation_info: "Deprecated; exact removal version unknown (pending official confirmation)"
-        severity: "warning"
-        operator_category: "flagger"
+      # flagger.app/v1beta1 is intentionally NOT listed here — it is the current
+      # and only stable Flagger API. There is no v1 release yet. Re-evaluate
+      # when Flagger publishes v1 CRDs (track: https://github.com/fluxcd/flagger/releases).
       # ArgoCD APIs
       - api_version: "argoproj.io/v1alpha1"
         deprecation_info: "Deprecated; exact removal version unknown (pending official confirmation)"
