@@ -121,13 +121,12 @@ func (ctx *ValidationContext) traverseFromResource(resource *parser.ParsedResour
 
 	visited[key] = true
 
-	// Traverse dependencies
+	// Traverse dependencies — use FindAllTargetResources so that every document
+	// in a multi-doc YAML file is visited, not just the first one.
 	for _, dep := range resource.Dependencies {
 		if dep.ReferenceType == string(parser.ReferenceTypePath) || dep.ReferenceType == string(parser.ReferenceTypeResource) {
-			// Find the target resource
-			targetResource := ctx.Graph.FindTargetResource(dep, resource, ctx.RepoPath)
-			if targetResource != nil {
-				ctx.traverseFromResource(targetResource, visited)
+			for _, target := range ctx.Graph.FindAllTargetResources(dep, resource, ctx.RepoPath) {
+				ctx.traverseFromResource(target, visited)
 			}
 		}
 	}

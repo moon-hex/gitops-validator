@@ -1,5 +1,26 @@
 # Release Notes
 
+## Version 1.7.1 (upcoming) - Bug Fix: Multi-Document YAML Files Produce False-Positive Orphan Warnings
+
+### Bug Fixes
+
+#### Orphaned Resource Validator reports every document after the first in a multi-doc YAML as orphaned
+
+**Root cause:** `findResourceByPath` in `graph.go` always returned only `resources[0]` from the `g.Files` slice (which holds one entry per `---` document). The orphan-detection traversal in `context.go` called `FindTargetResource` (single return), so `resources[1..n]` were never marked as visited and surfaced as false-positive orphan warnings.
+
+**Fix:**
+- Added `findAllResourcesByPath` and `FindAllTargetResources` to `internal/parser/graph.go`. The new multi-return path mirrors the existing single-return logic (exact path lookup, then directory→kustomization fallback) but returns the full document slice.
+- Updated `traverseFromResource` in `internal/context/context.go` to iterate over `FindAllTargetResources` instead of calling `FindTargetResource` once.
+
+The existing `FindTargetResource` / `findResourceByPath` are untouched — they are still used in `BuildDependencyGraph` for `ReferencedBy` tracking where single-resource semantics are correct.
+
+**Impact:** Eliminates false-positive orphan warnings for every resource after the first document in any multi-doc YAML file referenced by a kustomization.
+
+### Upgrade
+Binary and bundle available on Releases. No configuration changes required — this is a pure bug-fix release.
+
+---
+
 ## Version 1.7.0 (upcoming) - Bug Fixes: External SourceRef Name Collision & Missing BaseDir in Kustomization Validators
 
 ### Bug Fixes

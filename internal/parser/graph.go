@@ -124,6 +124,47 @@ func (g *ResourceGraph) findResourceByPath(path string, isRelative bool, sourceF
 	return nil
 }
 
+// findAllResourcesByPath returns all resources stored at a path, handling
+// multi-document YAML files (multiple --- sections in one file). Falls back
+// to directory-kustomization probing just like findResourceByPath.
+func (g *ResourceGraph) findAllResourcesByPath(path string, isRelative bool, sourceFile string, repoPath string) []*ParsedResource {
+	var fullPath string
+	if isRelative {
+		fullPath = filepath.Join(filepath.Dir(sourceFile), path)
+	} else {
+		fullPath = filepath.Join(repoPath, path)
+	}
+
+	if resources, exists := g.Files[fullPath]; exists && len(resources) > 0 {
+		return resources
+	}
+
+	for _, kFile := range []string{"kustomization.yaml", "kustomization.yml"} {
+		kPath := filepath.Join(fullPath, kFile)
+		if resources, exists := g.Files[kPath]; exists && len(resources) > 0 {
+			return resources
+		}
+	}
+
+	return nil
+}
+
+// FindAllTargetResources returns every resource at the target of a reference.
+// For path/resource references into multi-document YAML files this returns all
+// documents, not just the first. Use this for orphan-detection traversal;
+// keep using FindTargetResource for reverse-reference (ReferencedBy) tracking.
+func (g *ResourceGraph) FindAllTargetResources(ref ResourceReference, sourceResource *ParsedResource, repoPath string) []*ParsedResource {
+	switch ref.ReferenceType {
+	case string(ReferenceTypePath), string(ReferenceTypeResource):
+		return g.findAllResourcesByPath(ref.Path, ref.IsRelative, sourceResource.File, repoPath)
+	default:
+		if single := g.FindTargetResource(ref, sourceResource, repoPath); single != nil {
+			return []*ParsedResource{single}
+		}
+		return nil
+	}
+}
+
 // findResourceByName finds a resource by its name
 func (g *ResourceGraph) findResourceByName(name string) *ParsedResource {
 	// Try exact match first
