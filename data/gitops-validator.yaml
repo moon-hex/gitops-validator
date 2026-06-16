@@ -41,16 +41,16 @@ gitops-validator:
       # Categories are displayed in priority order (lower number = shown first / higher importance).
       # A resource is placed in the first category whose path patterns match.
       # Uncomment and customise for your repo layout:
-      # categories:
-      #   - name: "Unused App Resources"
-      #     paths: ["apps/**", "gitops/apps/**"]
-      #     priority: 1
-      #   - name: "Unused Common Resources"
-      #     paths: ["common-resources/**", "gitops/common-resources/**"]
-      #     priority: 2
-      #   - name: "Unused Locations"
-      #     paths: ["locations/**", "gitops/locations/**"]
-      #     priority: 3
+      categories:
+        - name: "Unused App Resources"
+          paths: ["apps/**", "gitops/apps/**"]
+          priority: 1
+        - name: "Unused Common Resources"
+          paths: ["common-resources/**", "gitops/common-resources/**"]
+          priority: 2
+        - name: "Unused Locations"
+          paths: ["locations/**", "gitops/locations/**"]
+          priority: 3
       
     # Deprecated API detection
     deprecated-apis:
