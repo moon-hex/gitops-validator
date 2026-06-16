@@ -1,5 +1,71 @@
 # Release Notes
 
+## Version 1.8.0 (upcoming) - Feature: Orphaned Resource Output Grouping by Path Category
+
+### New Feature — Orphaned Resource Categories
+
+Orphaned resource warnings can now be grouped under named category headers in the output. This makes triage much faster in large repos where different path locations have different importance levels (e.g. app resources should always be zero, while unused locations are lower priority).
+
+#### Configuration
+
+Add a `categories` list under `orphaned-resources` in your `gitops-validator.yaml`:
+
+```yaml
+gitops-validator:
+  rules:
+    orphaned-resources:
+      enabled: true
+      severity: "warning"
+      categories:
+        - name: "Unused App Resources"
+          paths: ["apps/**", "gitops/apps/**"]
+          priority: 1   # lower = shown first / higher importance
+        - name: "Unused Common Resources"
+          paths: ["common-resources/**", "gitops/common-resources/**"]
+          priority: 2
+        - name: "Unused Locations"
+          paths: ["locations/**", "gitops/locations/**"]
+          priority: 3
+```
+
+Each category:
+- `name` — display label in the output
+- `paths` — list of glob patterns (relative to repo root, forward-slash separated); `prefix/**` matches any file under that directory
+- `priority` — display order; lower number appears first (omit or set to 0 to push to the end)
+
+A resource is placed in the first category whose paths match. Resources not matching any category are printed last under "Uncategorized".
+
+#### Output (when categories are configured)
+
+```
+📋 Validation Results (8 issues found):
+
+❌ [ERROR] Invalid path reference: ...
+
+⚠️  Orphaned Resources — Unused App Resources (2):
+  ⚠️ [WARNING] File 'foo.yaml' is not referenced... (File: ...) (Resource: ...)
+  ⚠️ [WARNING] File 'bar.yaml' is not referenced... (File: ...) (Resource: ...)
+
+⚠️  Orphaned Resources — Unused Common Resources (4):
+  ⚠️ [WARNING] File 'tls-secret.yaml' is not referenced... (File: ...) (Resource: ...)
+  ...
+
+⚠️  Orphaned Resources — Unused Locations (1):
+  ⚠️ [WARNING] File 'cluster-kustomization.yaml' is not referenced... (File: ...) (Resource: ...)
+
+⚠️  Orphaned Resources — Uncategorized (1):
+  ⚠️ [WARNING] File 'other.yaml' is not referenced... (File: ...) (Resource: ...)
+```
+
+Without categories the output is unchanged (flat list as before).
+
+The `Category` field is also populated in JSON and markdown output formats.
+
+### Upgrade
+No breaking changes. Categories are opt-in via config. Existing configs and workflows are unaffected.
+
+---
+
 ## Version 1.7.1 (upcoming) - Bug Fix: Multi-Document YAML Files Produce False-Positive Orphan Warnings
 
 ### Bug Fixes

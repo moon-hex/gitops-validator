@@ -49,20 +49,38 @@ type EntryPointsConfig struct {
 
 // RulesConfig defines which validation rules to run
 type RulesConfig struct {
-	FluxKustomization               RuleConfig `yaml:"flux-kustomization"`
-	FluxPostBuildVariables          RuleConfig `yaml:"flux-postbuild-variables"`
-	KubernetesKustomization         RuleConfig `yaml:"kubernetes-kustomization"`
-	KustomizationVersionConsistency RuleConfig `yaml:"kustomization-version-consistency"`
-	OrphanedResources               RuleConfig `yaml:"orphaned-resources"`
-	DeprecatedAPIs                  RuleConfig `yaml:"deprecated-apis"`
-	DoubleReferences                RuleConfig `yaml:"double-references"`
-	CircularDependencies            RuleConfig `yaml:"circular-dependencies"`
+	FluxKustomization               RuleConfig                  `yaml:"flux-kustomization"`
+	FluxPostBuildVariables          RuleConfig                  `yaml:"flux-postbuild-variables"`
+	KubernetesKustomization         RuleConfig                  `yaml:"kubernetes-kustomization"`
+	KustomizationVersionConsistency RuleConfig                  `yaml:"kustomization-version-consistency"`
+	OrphanedResources               OrphanedResourcesRuleConfig `yaml:"orphaned-resources"`
+	DeprecatedAPIs                  RuleConfig                  `yaml:"deprecated-apis"`
+	DoubleReferences                RuleConfig                  `yaml:"double-references"`
+	CircularDependencies            RuleConfig                  `yaml:"circular-dependencies"`
 }
 
 // RuleConfig defines a single validation rule
 type RuleConfig struct {
 	Enabled  bool   `yaml:"enabled"`
 	Severity string `yaml:"severity"`
+}
+
+// OrphanedResourceCategoryConfig defines a named category for orphaned resource grouping
+type OrphanedResourceCategoryConfig struct {
+	// Name is the display label shown in grouped output
+	Name string `yaml:"name"`
+	// Paths is a list of glob patterns (relative to repo root, forward-slash separated).
+	// A path like "apps/**" matches any file under the apps/ directory.
+	Paths []string `yaml:"paths"`
+	// Priority controls display order: lower value = higher importance = shown first.
+	Priority int `yaml:"priority"`
+}
+
+// OrphanedResourcesRuleConfig extends RuleConfig with optional path-based categories
+type OrphanedResourcesRuleConfig struct {
+	Enabled    bool                              `yaml:"enabled"`
+	Severity   string                            `yaml:"severity"`
+	Categories []OrphanedResourceCategoryConfig  `yaml:"categories"`
 }
 
 // DeprecatedAPIsConfig defines deprecated API configuration
@@ -124,7 +142,7 @@ func DefaultConfig() *Config {
 				FluxPostBuildVariables:          RuleConfig{Enabled: true, Severity: "error"},
 				KubernetesKustomization:         RuleConfig{Enabled: true, Severity: "error"},
 				KustomizationVersionConsistency: RuleConfig{Enabled: true, Severity: "error"},
-				OrphanedResources:               RuleConfig{Enabled: true, Severity: "warning"},
+				OrphanedResources:               OrphanedResourcesRuleConfig{Enabled: true, Severity: "warning"},
 				DeprecatedAPIs:                  RuleConfig{Enabled: true, Severity: "warning"},
 				DoubleReferences:                RuleConfig{Enabled: true, Severity: "warning"},
 				CircularDependencies:            RuleConfig{Enabled: true, Severity: "error"},
@@ -262,24 +280,52 @@ func (c *Config) Validate() error {
 	}
 
 	// Validate rule severities
-	rules := []RuleConfig{
-		c.GitOpsValidator.Rules.FluxKustomization,
-		c.GitOpsValidator.Rules.FluxPostBuildVariables,
-		c.GitOpsValidator.Rules.KubernetesKustomization,
-		c.GitOpsValidator.Rules.KustomizationVersionConsistency,
-		c.GitOpsValidator.Rules.OrphanedResources,
-		c.GitOpsValidator.Rules.DeprecatedAPIs,
-		c.GitOpsValidator.Rules.DoubleReferences,
-		c.GitOpsValidator.Rules.CircularDependencies,
+	ruleSeverities := []struct{ enabled bool; severity string }{
+		{c.GitOpsValidator.Rules.FluxKustomization.Enabled, c.GitOpsValidator.Rules.FluxKustomization.Severity},
+		{c.GitOpsValidator.Rules.FluxPostBuildVariables.Enabled, c.GitOpsValidator.Rules.FluxPostBuildVariables.Severity},
+		{c.GitOpsValidator.Rules.KubernetesKustomization.Enabled, c.GitOpsValidator.Rules.KubernetesKustomization.Severity},
+		{c.GitOpsValidator.Rules.KustomizationVersionConsistency.Enabled, c.GitOpsValidator.Rules.KustomizationVersionConsistency.Severity},
+		{c.GitOpsValidator.Rules.OrphanedResources.Enabled, c.GitOpsValidator.Rules.OrphanedResources.Severity},
+		{c.GitOpsValidator.Rules.DeprecatedAPIs.Enabled, c.GitOpsValidator.Rules.DeprecatedAPIs.Severity},
+		{c.GitOpsValidator.Rules.DoubleReferences.Enabled, c.GitOpsValidator.Rules.DoubleReferences.Severity},
+		{c.GitOpsValidator.Rules.CircularDependencies.Enabled, c.GitOpsValidator.Rules.CircularDependencies.Severity},
 	}
 
-	for _, rule := range rules {
-		if rule.Enabled && rule.Severity != "error" && rule.Severity != "warning" && rule.Severity != "info" {
-			return fmt.Errorf("invalid rule severity '%s', must be error, warning, or info", rule.Severity)
+	for _, rule := range ruleSeverities {
+		if rule.enabled && rule.severity != "error" && rule.severity != "warning" && rule.severity != "info" {
+			return fmt.Errorf("invalid rule severity '%s', must be error, warning, or info", rule.severity)
 		}
 	}
 
 	return nil
+}
+
+// GetOrphanedCategories returns the configured orphaned-resource categories, sorted by priority.
+func (c *Config) GetOrphanedCategories() []OrphanedResourceCategoryConfig {
+	cats := c.GitOpsValidator.Rules.OrphanedResources.Categories
+	if len(cats) == 0 {
+		return nil
+	}
+	sorted := make([]OrphanedResourceCategoryConfig, len(cats))
+	copy(sorted, cats)
+	// Stable sort by priority ascending (0 treated as lowest priority)
+	for i := 1; i < len(sorted); i++ {
+		for j := i; j > 0; j-- {
+			pi, pj := sorted[j].Priority, sorted[j-1].Priority
+			if pi == 0 {
+				pi = 1<<31 - 1
+			}
+			if pj == 0 {
+				pj = 1<<31 - 1
+			}
+			if pi < pj {
+				sorted[j], sorted[j-1] = sorted[j-1], sorted[j]
+			} else {
+				break
+			}
+		}
+	}
+	return sorted
 }
 
 // GetEntryPointTypes returns the resource types that should be considered entry points
