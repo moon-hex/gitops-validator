@@ -512,20 +512,87 @@ func (v *Validator) printResults() {
 	// Default human-readable output
 	if v.outputFormat == "" {
 		fmt.Printf("\n📋 Validation Results (%d issues found):\n\n", len(resultsToPrint))
-		for _, result := range resultsToPrint {
-			icon := getSeverityIcon(result.Severity)
-			fmt.Printf("%s [%s] %s", icon, strings.ToUpper(result.Severity), result.Message)
-			if result.File != "" {
-				fmt.Printf(" (File: %s", result.File)
-				if result.Line > 0 {
-					fmt.Printf(":%d", result.Line)
+
+		// Separate orphaned-resource results (they may be grouped) from everything else
+		var other []types.ValidationResult
+		var orphaned []types.ValidationResult
+		for _, r := range resultsToPrint {
+			if r.Type == "orphaned-resource" {
+				orphaned = append(orphaned, r)
+			} else {
+				other = append(other, r)
+			}
+		}
+
+		// Print non-orphaned results flat
+		for _, result := range other {
+			printResultLine(result, "")
+		}
+
+		// Print orphaned results — grouped if any have a category, flat otherwise
+		hasCategorised := false
+		for _, r := range orphaned {
+			if r.Category != "" {
+				hasCategorised = true
+				break
+			}
+		}
+
+		if hasCategorised {
+			// Collect category order from config (already sorted by priority)
+			categoryOrder := v.config.GetOrphanedCategories()
+
+			// Build index: category name → results
+			grouped := make(map[string][]types.ValidationResult)
+			var uncategorised []types.ValidationResult
+			for _, r := range orphaned {
+				if r.Category == "" {
+					uncategorised = append(uncategorised, r)
+				} else {
+					grouped[r.Category] = append(grouped[r.Category], r)
 				}
-				fmt.Printf(")")
 			}
-			if result.Resource != "" {
-				fmt.Printf(" (Resource: %s)", result.Resource)
+
+			// Print configured categories in priority order
+			seenCategories := make(map[string]bool)
+			for _, cat := range categoryOrder {
+				items := grouped[cat.Name]
+				if len(items) == 0 {
+					continue
+				}
+				seenCategories[cat.Name] = true
+				if len(other) > 0 {
+					fmt.Println()
+				}
+				fmt.Printf("⚠️  Orphaned Resources — %s (%d):\n", cat.Name, len(items))
+				for _, r := range items {
+					printResultLine(r, "  ")
+				}
 			}
-			fmt.Println()
+
+			// Print any categories not in config (shouldn't happen, but be safe)
+			for catName, items := range grouped {
+				if seenCategories[catName] {
+					continue
+				}
+				fmt.Printf("\n⚠️  Orphaned Resources — %s (%d):\n", catName, len(items))
+				for _, r := range items {
+					printResultLine(r, "  ")
+				}
+			}
+
+			// Uncategorised orphans last
+			if len(uncategorised) > 0 {
+				fmt.Printf("\n⚠️  Orphaned Resources — Uncategorized (%d):\n", len(uncategorised))
+				for _, r := range uncategorised {
+					printResultLine(r, "  ")
+				}
+			}
+		} else {
+			// No categories configured — print flat as before
+			for _, result := range orphaned {
+				printResultLine(result, "")
+			}
 		}
 		return
 	}
@@ -535,12 +602,12 @@ func (v *Validator) printResults() {
 		fmt.Println("## GitOps Validator Results")
 		fmt.Println()
 		fmt.Printf("%d issues found\n\n", len(resultsToPrint))
-		fmt.Println("| Severity | Type | Message | File | Line | Resource |")
-		fmt.Println("|---|---|---|---|---:|---|")
+		fmt.Println("| Severity | Type | Message | File | Line | Resource | Category |")
+		fmt.Println("|---|---|---|---|---:|---|---|")
 		for _, r := range resultsToPrint {
 			msg := strings.ReplaceAll(r.Message, "|", "\\|")
-			fmt.Printf("| %s | %s | %s | %s | %d | %s |\n",
-				strings.ToUpper(r.Severity), r.Type, msg, r.File, r.Line, r.Resource)
+			fmt.Printf("| %s | %s | %s | %s | %d | %s | %s |\n",
+				strings.ToUpper(r.Severity), r.Type, msg, r.File, r.Line, r.Resource, r.Category)
 		}
 		return
 	}
@@ -555,6 +622,23 @@ func (v *Validator) printResults() {
 		fmt.Println(string(b))
 		return
 	}
+}
+
+// printResultLine prints a single validation result with optional indentation prefix
+func printResultLine(result types.ValidationResult, indent string) {
+	icon := getSeverityIcon(result.Severity)
+	fmt.Printf("%s%s [%s] %s", indent, icon, strings.ToUpper(result.Severity), result.Message)
+	if result.File != "" {
+		fmt.Printf(" (File: %s", result.File)
+		if result.Line > 0 {
+			fmt.Printf(":%d", result.Line)
+		}
+		fmt.Printf(")")
+	}
+	if result.Resource != "" {
+		fmt.Printf(" (Resource: %s)", result.Resource)
+	}
+	fmt.Println()
 }
 
 func getSeverityIcon(severity string) string {
