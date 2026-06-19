@@ -187,7 +187,7 @@ func runValidation(cmd *cobra.Command, args []string) error {
 	parallel := viper.GetBool("parallel")
 
 	// Create validator with parallel execution support
-	v := validator.NewValidatorWithExitCodes(path, verbose, yamlPath, failOnErrors, failOnWarnings, failOnInfo)
+	v := validator.NewValidatorWithExitCodesAndConfig(configFile, path, verbose, yamlPath, failOnErrors, failOnWarnings, failOnInfo)
 	v.SetParallel(parallel)
 
 	// Set pipeline if requested

@@ -36,15 +36,25 @@ type Validator struct {
 }
 
 func NewValidator(repoPath string, verbose bool, yamlPath string) *Validator {
-	// Load configuration from file
+	return NewValidatorWithConfigPath("", repoPath, verbose, yamlPath)
+}
+
+// NewValidatorWithConfigPath creates a validator using an explicit config file path.
+// configPath takes priority; if empty the usual discovery order is used:
+// data/gitops-validator.yaml → .gitops-validator.yaml in CWD → built-in defaults.
+func NewValidatorWithConfigPath(configPath string, repoPath string, verbose bool, yamlPath string) *Validator {
 	cfg := config.DefaultConfig()
 
-	// Try to load from data/gitops-validator.yaml first, then .gitops-validator.yaml for backward compatibility
-	if _, err := os.Stat("data/gitops-validator.yaml"); err == nil {
+	switch {
+	case configPath != "":
+		if loadedConfig, err := config.LoadConfig(configPath); err == nil {
+			cfg = loadedConfig
+		}
+	case fileExists("data/gitops-validator.yaml"):
 		if loadedConfig, err := config.LoadConfig("data/gitops-validator.yaml"); err == nil {
 			cfg = loadedConfig
 		}
-	} else if _, err := os.Stat(".gitops-validator.yaml"); err == nil {
+	case fileExists(".gitops-validator.yaml"):
 		if loadedConfig, err := config.LoadConfig(".gitops-validator.yaml"); err == nil {
 			cfg = loadedConfig
 		}
@@ -68,9 +78,14 @@ func NewValidator(repoPath string, verbose bool, yamlPath string) *Validator {
 
 // NewValidatorWithParallel creates a validator with parallel execution enabled
 func NewValidatorWithParallel(repoPath string, verbose bool, yamlPath string, parallel bool) *Validator {
-	v := NewValidator(repoPath, verbose, yamlPath)
+	v := NewValidatorWithConfigPath("", repoPath, verbose, yamlPath)
 	v.parallel = parallel
 	return v
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 // SetParallel enables or disables parallel validation
@@ -145,9 +160,13 @@ func (v *Validator) SetAggregationPreset(preset string) {
 
 // NewValidatorWithExitCodes creates a validator with custom exit code configuration
 func NewValidatorWithExitCodes(repoPath string, verbose bool, yamlPath string, failOnErrors, failOnWarnings, failOnInfo bool) *Validator {
-	v := NewValidator(repoPath, verbose, yamlPath)
+	return NewValidatorWithExitCodesAndConfig("", repoPath, verbose, yamlPath, failOnErrors, failOnWarnings, failOnInfo)
+}
 
-	// Override exit code configuration
+// NewValidatorWithExitCodesAndConfig is the full constructor used by the CLI.
+func NewValidatorWithExitCodesAndConfig(configPath, repoPath string, verbose bool, yamlPath string, failOnErrors, failOnWarnings, failOnInfo bool) *Validator {
+	v := NewValidatorWithConfigPath(configPath, repoPath, verbose, yamlPath)
+
 	v.config.GitOpsValidator.ExitCodes.FailOnErrors = failOnErrors
 	v.config.GitOpsValidator.ExitCodes.FailOnWarnings = failOnWarnings
 	v.config.GitOpsValidator.ExitCodes.FailOnInfo = failOnInfo
@@ -557,26 +576,30 @@ func (v *Validator) printResults() {
 
 			// Print configured categories in priority order
 			seenCategories := make(map[string]bool)
+			firstGroup := true
 			for _, cat := range categoryOrder {
 				items := grouped[cat.Name]
 				if len(items) == 0 {
 					continue
 				}
 				seenCategories[cat.Name] = true
-				if len(other) > 0 {
+				// blank line before every group (separates from previous content)
+				if !firstGroup || len(other) > 0 {
 					fmt.Println()
 				}
+				firstGroup = false
 				fmt.Printf("⚠️  Orphaned Resources — %s (%d):\n", cat.Name, len(items))
 				for _, r := range items {
 					printResultLine(r, "  ")
 				}
 			}
 
-			// Print any categories not in config (shouldn't happen, but be safe)
+			// Print any categories present in results but not in config (shouldn't happen, but be safe)
 			for catName, items := range grouped {
 				if seenCategories[catName] {
 					continue
 				}
+				firstGroup = false
 				fmt.Printf("\n⚠️  Orphaned Resources — %s (%d):\n", catName, len(items))
 				for _, r := range items {
 					printResultLine(r, "  ")
@@ -585,7 +608,8 @@ func (v *Validator) printResults() {
 
 			// Uncategorised orphans last
 			if len(uncategorised) > 0 {
-				fmt.Printf("\n⚠️  Orphaned Resources — Uncategorized (%d):\n", len(uncategorised))
+				fmt.Println()
+				fmt.Printf("⚠️  Orphaned Resources — Uncategorized (%d):\n", len(uncategorised))
 				for _, r := range uncategorised {
 					printResultLine(r, "  ")
 				}
