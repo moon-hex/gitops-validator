@@ -57,6 +57,7 @@ type RulesConfig struct {
 	DeprecatedAPIs                  RuleConfig                  `yaml:"deprecated-apis"`
 	DoubleReferences                RuleConfig                  `yaml:"double-references"`
 	CircularDependencies            RuleConfig                  `yaml:"circular-dependencies"`
+	HTTPRoutePolicy                 RuleConfig                  `yaml:"http-route-policy"`
 }
 
 // RuleConfig defines a single validation rule
@@ -143,6 +144,7 @@ func DefaultConfig() *Config {
 				KubernetesKustomization:         RuleConfig{Enabled: true, Severity: "error"},
 				KustomizationVersionConsistency: RuleConfig{Enabled: true, Severity: "error"},
 				OrphanedResources:               OrphanedResourcesRuleConfig{Enabled: true, Severity: "warning"},
+			HTTPRoutePolicy:                 RuleConfig{Enabled: true, Severity: "warning"},
 				DeprecatedAPIs:                  RuleConfig{Enabled: true, Severity: "warning"},
 				DoubleReferences:                RuleConfig{Enabled: true, Severity: "warning"},
 				CircularDependencies:            RuleConfig{Enabled: true, Severity: "error"},
@@ -289,6 +291,7 @@ func (c *Config) Validate() error {
 		{c.GitOpsValidator.Rules.DeprecatedAPIs.Enabled, c.GitOpsValidator.Rules.DeprecatedAPIs.Severity},
 		{c.GitOpsValidator.Rules.DoubleReferences.Enabled, c.GitOpsValidator.Rules.DoubleReferences.Severity},
 		{c.GitOpsValidator.Rules.CircularDependencies.Enabled, c.GitOpsValidator.Rules.CircularDependencies.Severity},
+		{c.GitOpsValidator.Rules.HTTPRoutePolicy.Enabled, c.GitOpsValidator.Rules.HTTPRoutePolicy.Severity},
 	}
 
 	for _, rule := range ruleSeverities {
@@ -367,6 +370,8 @@ func (c *Config) IsRuleEnabled(ruleName string) bool {
 		return c.GitOpsValidator.Rules.DoubleReferences.Enabled
 	case "circular-dependencies":
 		return c.GitOpsValidator.Rules.CircularDependencies.Enabled
+	case "http-route-policy":
+		return c.GitOpsValidator.Rules.HTTPRoutePolicy.Enabled
 	default:
 		return false
 	}
@@ -391,6 +396,8 @@ func (c *Config) GetRuleSeverity(ruleName string) string {
 		return c.GitOpsValidator.Rules.DoubleReferences.Severity
 	case "circular-dependencies":
 		return c.GitOpsValidator.Rules.CircularDependencies.Severity
+	case "http-route-policy":
+		return c.GitOpsValidator.Rules.HTTPRoutePolicy.Severity
 	default:
 		return "warning"
 	}

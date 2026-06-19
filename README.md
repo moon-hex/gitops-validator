@@ -12,6 +12,7 @@ A comprehensive validation tool for GitOps repositories that checks for common i
   - **Composable Validation Rules**: Individual validation rules can be easily combined and tested
 - **Kustomization Version Consistency**: Ensures consistent `kustomize.config.k8s.io` apiVersion across dependency trees (prevents v1/v1beta1 mismatches)
 - **Orphaned Resource Detection**: Identifies YAML files that are not referenced by any kustomization using graph traversal; supports configurable path-based categories for grouped, prioritised output (e.g. app resources vs common resources vs unused locations)
+- **HTTP Route Policy Validation**: Detects `HTTPRoute` (Gateway API) and Istio `VirtualService` resources that have no `SecurityPolicy` defined in the same namespace
 - **Deprecated API Detection**: Warns about usage of deprecated Kubernetes API versions
 - **Dependency Chart Generation**: Visualize your GitOps repository structure with Mermaid diagrams
 - **Smart Error Handling**: Configurable exit codes for different severity levels (errors, warnings, info)

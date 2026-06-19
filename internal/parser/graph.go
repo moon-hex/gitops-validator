@@ -260,6 +260,21 @@ func (g *ResourceGraph) GetHelmReleases() []*ParsedResource {
 	return g.ByType[ResourceTypeHelmRelease]
 }
 
+// GetHTTPRoutes returns all gateway.networking.k8s.io HTTPRoute resources
+func (g *ResourceGraph) GetHTTPRoutes() []*ParsedResource {
+	return g.ByType[ResourceTypeHTTPRoute]
+}
+
+// GetVirtualServices returns all Istio VirtualService resources
+func (g *ResourceGraph) GetVirtualServices() []*ParsedResource {
+	return g.ByType[ResourceTypeVirtualService]
+}
+
+// GetSecurityPolicies returns all SecurityPolicy resources
+func (g *ResourceGraph) GetSecurityPolicies() []*ParsedResource {
+	return g.ByType[ResourceTypeSecurityPolicy]
+}
+
 // GetFluxSources returns all Flux Source resources
 func (g *ResourceGraph) GetFluxSources() []*ParsedResource {
 	return g.ByType[ResourceTypeFluxSource]
