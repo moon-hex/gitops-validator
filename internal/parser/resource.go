@@ -97,6 +97,10 @@ func ClassifyResource(resource *ParsedResource) ResourceType {
 	// SecurityPolicy: match by kind only — covers gateway.envoyproxy.io and other providers
 	case resource.Kind == "SecurityPolicy":
 		return ResourceTypeSecurityPolicy
+	// GCPBackendPolicy: GKE-specific backend policy for Gateway API HTTPRoutes
+	// (networking.gke.io/v1, networking.gke.io/v1beta1)
+	case resource.Kind == "GCPBackendPolicy" && strings.HasPrefix(resource.APIVersion, "networking.gke.io/"):
+		return ResourceTypeSecurityPolicy
 	default:
 		return ResourceTypeKubernetesResource
 	}
