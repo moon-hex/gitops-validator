@@ -1,5 +1,47 @@
 # Release Notes
 
+## Version 1.9.0 (upcoming) - Feature: HTTP Route Policy Validator
+
+### New Validator — HTTP Route Policy
+
+Detects `HTTPRoute` (Gateway API) and `VirtualService` (Istio) resources that have no `SecurityPolicy` defined in the same namespace.
+
+**Covered resource types:**
+| Route kind | API group |
+|---|---|
+| `HTTPRoute` | `gateway.networking.k8s.io/v1` or `v1beta1` |
+| `VirtualService` | `networking.istio.io/v1alpha3`, `v1beta1`, `v1` |
+
+**Policy match:** at least one `SecurityPolicy` (any `apiVersion`, e.g. `gateway.envoyproxy.io/v1alpha1`) must exist in the same namespace as the route.
+
+**Output:**
+```
+⚠️ [WARNING] HTTPRoute 'checkout-api' in namespace 'checkout' is not protected by any SecurityPolicy
+             (File: gitops/apps/checkout/httproute.yaml) (Resource: checkout-api)
+
+ℹ️ [INFO] VirtualService 'payments' has no metadata.namespace — cannot verify SecurityPolicy coverage
+          (namespace may be injected by kustomize) (File: gitops/apps/payments/vs.yaml)
+```
+
+Routes without a `metadata.namespace` in their YAML (i.e. namespace set via kustomize patch) emit an `INFO` notice instead of a `WARNING` to avoid false positives.
+
+**Configuration** (`gitops-validator.yaml`):
+```yaml
+rules:
+  http-route-policy:
+    enabled: true    # set false to disable for repos without Gateway API / Istio
+    severity: "warning"
+```
+
+**New files:**
+- `internal/validators/checks/http_route_policy_checks.go`
+- `internal/validators/http_route_policy_validator.go`
+
+### Upgrade
+The validator is enabled by default. In repos that contain no `HTTPRoute` or `VirtualService` resources it produces no output. To disable it entirely, set `http-route-policy.enabled: false` in your `gitops-validator.yaml`.
+
+---
+
 ## Version 1.8.0 (upcoming) - Feature: Orphaned Resource Output Grouping by Path Category
 
 ### New Feature — Orphaned Resource Categories

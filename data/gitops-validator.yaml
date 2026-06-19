@@ -56,6 +56,14 @@ gitops-validator:
     deprecated-apis:
       enabled: true
       severity: "warning"
+
+    # HTTP Route Policy validation
+    # Checks that every HTTPRoute (gateway.networking.k8s.io) and Istio VirtualService
+    # has a SecurityPolicy in the same namespace.
+    # Disable this rule if you do not use Gateway API / Istio in this repository.
+    http-route-policy:
+      enabled: true
+      severity: "warning"
       
   # Deprecated APIs configuration
   deprecated-apis:

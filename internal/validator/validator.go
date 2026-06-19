@@ -209,6 +209,7 @@ func (v *Validator) Validate() (int, error) {
 			validators.NewOrphanedResourceValidator(v.repoPath),
 			validators.NewDeprecatedAPIValidator(v.repoPath),
 			validators.NewFluxPostBuildVariablesValidator(v.repoPath),
+			validators.NewHTTPRoutePolicyValidator(v.repoPath),
 		}
 
 		// Run all validators with context (parallel or sequential)
@@ -363,6 +364,7 @@ func (v *Validator) runValidationWithPipeline(validationContext *context.Validat
 		"orphaned-resource":                 validators.NewOrphanedResourceValidator(v.repoPath),
 		"deprecated-api":                    validators.NewDeprecatedAPIValidator(v.repoPath),
 		"flux-postbuild-variables":          validators.NewFluxPostBuildVariablesValidator(v.repoPath),
+		"http-route-policy":                 validators.NewHTTPRoutePolicyValidator(v.repoPath),
 	}
 
 	// Create pipeline executor

@@ -40,6 +40,9 @@ const (
 	ResourceTypeFluxSource              ResourceType = "flux-source"
 	ResourceTypeFluxImage               ResourceType = "flux-image"
 	ResourceTypeFluxNotification        ResourceType = "flux-notification"
+	ResourceTypeHTTPRoute               ResourceType = "http-route"
+	ResourceTypeVirtualService          ResourceType = "virtual-service"
+	ResourceTypeSecurityPolicy          ResourceType = "security-policy"
 	ResourceTypeKubernetesResource      ResourceType = "kubernetes-resource"
 )
 
@@ -87,6 +90,13 @@ func ClassifyResource(resource *ParsedResource) ResourceType {
 		return ResourceTypeFluxNotification
 	case resource.Kind == "Receiver" && strings.HasPrefix(resource.APIVersion, "notification.toolkit.fluxcd.io/"):
 		return ResourceTypeFluxNotification
+	case resource.Kind == "HTTPRoute" && strings.HasPrefix(resource.APIVersion, "gateway.networking.k8s.io/"):
+		return ResourceTypeHTTPRoute
+	case resource.Kind == "VirtualService" && strings.HasPrefix(resource.APIVersion, "networking.istio.io/"):
+		return ResourceTypeVirtualService
+	// SecurityPolicy: match by kind only — covers gateway.envoyproxy.io and other providers
+	case resource.Kind == "SecurityPolicy":
+		return ResourceTypeSecurityPolicy
 	default:
 		return ResourceTypeKubernetesResource
 	}
